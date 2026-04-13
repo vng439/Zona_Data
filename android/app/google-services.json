@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1025287400779",
+    "project_id": "zonadata-35cec",
+    "storage_bucket": "zonadata-35cec.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1025287400779:android:434ce31366e1bcb4b40cce",
+        "android_client_info": {
+          "package_name": "com.ldsw.zona_data"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBuoiOe0YjSN_LG7_X3sQoyk3HqyCfjDoU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
