@@ -44,12 +44,11 @@ class Reporte {
     this.longitud,
   });
 
-  // Convierte el objeto a Map para guardar en Firestore
   Map<String, dynamic> toMap() {
     return {
       'titulo': titulo,
       'descripcion': descripcion,
-      'categoria': categoria.name,   // .name convierte el enum a String
+      'categoria': categoria.name,   
       'fecha': fecha,
       'autorId': autorId,
       'autorNombre': autorNombre,
@@ -60,7 +59,6 @@ class Reporte {
     };
   }
 
-  // Crea un Reporte desde un documento de Firestore
   factory Reporte.fromMap(String id, Map<String, dynamic> map) {
     return Reporte(
       id: id,
