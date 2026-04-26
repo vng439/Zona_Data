@@ -70,24 +70,25 @@ class _RootScreenState extends State<RootScreen>
         ],
       ),
       bottomNavigationBar: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
           color: Colors.white,
-          boxShadow: [
-            BoxShadow(color: Colors.black12, blurRadius: 10, spreadRadius: 2),
-          ],
-        ),
-        child: SafeArea(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(0, Icons.view_list, 'Feed'),
-              _buildNavItem(1, Icons.explore, 'Mapa'),
-              _buildNavItem(2, Icons.account_circle, 'Perfil'),
-            ],
+          border: Border(
+            top: BorderSide(
+              color: Colors.grey.withValues(alpha: 0.15),
+              width: 1,
+            ),
           ),
         ),
-      ), );
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(0, Icons.view_list, 'Reportes'),
+            _buildNavItem(1, Icons.explore, 'Mapa'),
+            _buildNavItem(2, Icons.account_circle, 'Perfil'),
+            ],
+        ),
+      ),, );
   }
 
   Widget _buildNavItem(int index, IconData icon, String label) {
@@ -95,32 +96,38 @@ class _RootScreenState extends State<RootScreen>
   return GestureDetector(
     onTap: () => _cambiarPantalla(index),
     behavior: HitTestBehavior.opaque,
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.blue.withValues(alpha: 0.15) : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      decoration: BoxDecoration(
+        color: activo
+            ? const Color(0xFF75C5F0).withValues(alpha: 0.15)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icono,
+            size: 24,
+            color: isSelected
+                ? const Color(0xFF2D2A77)
+                : Colors.grey,
           ),
-          child: Icon(
-            icon,
-            color: isSelected ? Colors.blue : Colors.grey,
-            size: 26,
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              color: isSelected
+                  ? const Color(0xFF2D2A77)
+                  : Colors.grey,
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? Colors.blue : Colors.grey,
-          ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 }
