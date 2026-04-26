@@ -88,7 +88,7 @@ class _RootScreenState extends State<RootScreen>
             _buildNavItem(2, Icons.account_circle, 'Perfil'),
             ],
         ),
-      ),, );
+      ), );
   }
 
   Widget _buildNavItem(int index, IconData icon, String label) {
@@ -100,7 +100,7 @@ class _RootScreenState extends State<RootScreen>
       duration: const Duration(milliseconds: 200),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       decoration: BoxDecoration(
-        color: activo
+        color: isSelected
             ? const Color(0xFF75C5F0).withValues(alpha: 0.15)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(20),
@@ -109,7 +109,7 @@ class _RootScreenState extends State<RootScreen>
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            icono,
+            icon,
             size: 24,
             color: isSelected
                 ? const Color(0xFF2D2A77)
