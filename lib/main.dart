@@ -24,56 +24,54 @@ class ZonaDataApp extends StatelessWidget {
       title: 'ZonaData',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-  useMaterial3: true,
-  colorScheme: ColorScheme(
-    brightness: Brightness.light,
+      useMaterial3: true,
+      colorScheme: ColorScheme(
+        brightness: Brightness.light,
+          // Azul profundo — Santa Cruz
+          primary: Color(0xFF0D47A1),
+          onPrimary: Color(0xFFFFFFFF),
+          primaryContainer: Color(0xFFE8E7F5),
+          onPrimaryContainer: Color(0xFF1A1850),
 
 
-    // Azul profundo — Santa Cruz
-    primary: Color(0xFF0D47A1),
-    onPrimary: Color(0xFFFFFFFF),
-    primaryContainer: Color(0xFFE8E7F5),
-    onPrimaryContainer: Color(0xFF1A1850),
+          // Azul cielo — Caleta Olivia
+          secondary: Color(0xFF75C5F0),
+          onSecondary: Color(0xFF1A1A1A),
+          secondaryContainer: Color(0xFFE3F4FD),
+          onSecondaryContainer: Color(0xFF0D4F6B),
 
 
-    // Azul cielo — Caleta Olivia
-    secondary: Color(0xFF75C5F0),
-    onSecondary: Color(0xFF1A1A1A),
-    secondaryContainer: Color(0xFFE3F4FD),
-    onSecondaryContainer: Color(0xFF0D4F6B),
+          // Amarillo — exclusivo para FAB
+          tertiary: Color(0xFFFFD700),
+          onTertiary: Color(0xFF1A1A1A),
+          tertiaryContainer: Color(0xFFFFF8CC),
+          onTertiaryContainer: Color(0xFF5A4800),
 
 
-    // Amarillo — exclusivo para FAB
-    tertiary: Color(0xFFFFD700),
-    onTertiary: Color(0xFF1A1A1A),
-    tertiaryContainer: Color(0xFFFFF8CC),
-    onTertiaryContainer: Color(0xFF5A4800),
+          surface: Color(0xFFFFFFFF),
+          onSurface: Color(0xFF1A1A1A),
+          surfaceContainerHighest: Color(0xFFF3F3F3),
+          onSurfaceVariant: Color(0xFF555555),
 
 
-    surface: Color(0xFFFFFFFF),
-    onSurface: Color(0xFF1A1A1A),
-    surfaceContainerHighest: Color(0xFFF3F3F3),
-    onSurfaceVariant: Color(0xFF555555),
+          outline: Color(0xFFCCCCCC),
+          outlineVariant: Color(0xFFE5E5E5),
 
 
-    outline: Color(0xFFCCCCCC),
-    outlineVariant: Color(0xFFE5E5E5),
+          error: Color(0xFFB00020),
+          onError: Color(0xFFFFFFFF),
+          errorContainer: Color(0xFFFFDAD6),
+          onErrorContainer: Color(0xFF410002),
 
 
-    error: Color(0xFFB00020),
-    onError: Color(0xFFFFFFFF),
-    errorContainer: Color(0xFFFFDAD6),
-    onErrorContainer: Color(0xFF410002),
+          scrim: Color(0xFF000000),
+          shadow: Color(0xFF000000),
 
 
-    scrim: Color(0xFF000000),
-    shadow: Color(0xFF000000),
-
-
-    inversePrimary: Color(0xFFBBB8FF),
-    inverseSurface: Color(0xFF2C2C2C),
-    onInverseSurface: Color(0xFFF5F5F5),
-  ),
+          inversePrimary: Color(0xFFBBB8FF),
+          inverseSurface: Color(0xFF2C2C2C),
+          onInverseSurface: Color(0xFFF5F5F5),
+        ),
 
 
   // AppBar usa primary

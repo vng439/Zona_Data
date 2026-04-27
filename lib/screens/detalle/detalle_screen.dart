@@ -4,9 +4,7 @@ import 'package:flutter/material.dart';
 import '../../models/reports.dart';
 import '../../utils/reporte_helpers.dart';
 
-
 class DetalleScreen extends StatelessWidget {
-  // Recibe el reporte completo desde la pantalla anterior
   final Reporte reporte;
 
   const DetalleScreen({super.key, required this.reporte});
@@ -24,22 +22,20 @@ class DetalleScreen extends StatelessWidget {
         scrolledUnderElevation: 0.5,
       ),
       body: SingleChildScrollView(
-        // SingleChildScrollView permite que el contenido sea scrolleable
-        // si no entra en pantalla
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildBadges(),
             const SizedBox(height: 16),
-            _buildTitulo(),
+            _buildTitulo(context),
             const SizedBox(height: 8),
-            _buildDescripcion(),
+            _buildDescripcion(context),
             const SizedBox(height: 16),
-            _buildDivider(),
+            _buildDivider(context),
             const SizedBox(height: 16),
             _buildMetadata(context),
-            _buildInfoBox(),
+            _buildInfoBox(context),
             const SizedBox(height: 32),
             _buildBotonCierre(context),
           ],
@@ -48,7 +44,6 @@ class DetalleScreen extends StatelessWidget {
     );
   }
 
-  // Fila de badges: categoría y estado
   Widget _buildBadges() {
     return Row(
       children: [
@@ -87,83 +82,92 @@ class DetalleScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTitulo() {
+  Widget _buildTitulo(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Text(
       reporte.titulo,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 22,
         fontWeight: FontWeight.w500,
         height: 1.3,
+        color: cs.onSurface,
       ),
     );
   }
 
-  Widget _buildDescripcion() {
+  Widget _buildDescripcion(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Text(
       reporte.descripcion,
       style: TextStyle(
         fontSize: 15,
-        color: Colors.grey[600],
+        color: cs.onSurfaceVariant,
         height: 1.6,
       ),
     );
   }
 
-  Widget _buildDivider() {
-    return Divider(color: Colors.grey.withValues(alpha: 0.2));
+  Widget _buildDivider(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Divider(color: cs.outlineVariant);
   }
 
-  // Autor y fecha
   Widget _buildMetadata(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Row(
       children: [
-        Icon(Icons.person_outline, size: 16, color: Colors.grey[500]),
+        Icon(Icons.person_outline, size: 16, color: cs.onSurfaceVariant),
         const SizedBox(width: 4),
         Text(
           reporte.autorNombre,
-          style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+          style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
         ),
         const SizedBox(width: 16),
-        Icon(Icons.access_time, size: 16, color: Colors.grey[500]),
+        Icon(Icons.access_time, size: 16, color: cs.onSurfaceVariant),
         const SizedBox(width: 4),
         Text(
           formatearFecha(reporte.fecha),
-          style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+          style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
         ),
       ],
     );
   }
 
-  // Bloque informativo: respuesta admin o aviso de cierre pendiente
-  Widget _buildInfoBox() {
+  Widget _buildInfoBox(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     if (reporte.estado == EstadoReporte.resuelto &&
         reporte.respuestaAdmin != null) {
       return Container(
         margin: const EdgeInsets.only(top: 20),
         padding: const EdgeInsets.all(14),
-        decoration: const BoxDecoration(
-          color: Color(0xFFE1F5EE),
+        decoration: BoxDecoration(
+          color: cs.primaryContainer,
           border: Border(
-            left: BorderSide(color: Color(0xFF1D9E75), width: 3),
+            left: BorderSide(color: cs.primary, width: 3),
           ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Respuesta del administrador',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF0F6E56),
+                color: cs.onPrimaryContainer,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               reporte.respuestaAdmin!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: Color(0xFF085041),
+                color: cs.onPrimaryContainer,
                 height: 1.5,
               ),
             ),
@@ -176,30 +180,30 @@ class DetalleScreen extends StatelessWidget {
       return Container(
         margin: const EdgeInsets.only(top: 20),
         padding: const EdgeInsets.all(14),
-        decoration: const BoxDecoration(
-          color: Color(0xFFFAEEDA),
+        decoration: BoxDecoration(
+          color: cs.tertiaryContainer,
           border: Border(
-            left: BorderSide(color: Color(0xFFBA7517), width: 3),
+            left: BorderSide(color: cs.tertiary, width: 3),
           ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Solicitud de cierre enviada',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF854F0B),
+                color: cs.onTertiaryContainer,
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Un vecino indicó que este problema fue resuelto. '
               'Esperando confirmación del administrador.',
               style: TextStyle(
                 fontSize: 14,
-                color: Color(0xFF633806),
+                color: cs.onTertiaryContainer,
                 height: 1.5,
               ),
             ),
@@ -211,32 +215,31 @@ class DetalleScreen extends StatelessWidget {
     return const SizedBox.shrink();
   }
 
-  // Botón de solicitar cierre — solo visible si el reporte está activo
   Widget _buildBotonCierre(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     if (reporte.estado != EstadoReporte.activo) {
       return const SizedBox.shrink();
     }
 
     return SizedBox(
-      width: double.infinity, // ocupa todo el ancho disponible
+      width: double.infinity,
       child: OutlinedButton.icon(
-        onPressed: () {
-          // Por ahora mostramos un diálogo de confirmación.
-          // En la Etapa 3 esto va a escribir en Firestore.
-          _mostrarDialogoCierre(context);
-        },
+        onPressed: () => _mostrarDialogoCierre(context),
         icon: const Icon(Icons.check_circle_outline),
         label: const Text('Este problema ya fue resuelto'),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
-          side: const BorderSide(color: Color(0xFF1D9E75)),
-          foregroundColor: const Color(0xFF1D9E75),
+          side: BorderSide(color: cs.primary),
+          foregroundColor: cs.primary,
         ),
       ),
     );
   }
 
   void _mostrarDialogoCierre(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -261,7 +264,7 @@ class DetalleScreen extends StatelessWidget {
               );
             },
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF1D9E75),
+              foregroundColor: cs.primary,
             ),
             child: const Text('Confirmar'),
           ),

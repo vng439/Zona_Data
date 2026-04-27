@@ -39,15 +39,15 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 48),
-                _buildEncabezado(),
+                _buildEncabezado(context),
                 const SizedBox(height: 40),
-                _buildCampoEmail(),
+                _buildCampoEmail(context),
                 const SizedBox(height: 16),
-                _buildCampoPassword(),
+                _buildCampoPassword(context),
                 const SizedBox(height: 32),
-                _buildBotonLogin(),
+                _buildBotonLogin(context),
                 const SizedBox(height: 16),
-                _buildLinkRegistro(),
+                _buildLinkRegistro(context),
               ],
             ),
           ),
@@ -56,7 +56,9 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildEncabezado() {
+  Widget _buildEncabezado(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -64,21 +66,22 @@ class _LoginScreenState extends State<LoginScreen> {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: const Color(0xFF1D9E75),
+            color: cs.primary,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.location_on,
-            color: Colors.white,
+            color: cs.onPrimary,
             size: 28,
           ),
         ),
         const SizedBox(height: 24),
-        const Text(
+        Text(
           'ZonaData',
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.w500,
+            color: cs.onSurface,
           ),
         ),
         const SizedBox(height: 8),
@@ -86,18 +89,18 @@ class _LoginScreenState extends State<LoginScreen> {
           'Iniciá sesión para publicar reportes',
           style: TextStyle(
             fontSize: 15,
-            color: Colors.grey[600],
+            color: cs.onSurfaceVariant,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildCampoEmail() {
+  Widget _buildCampoEmail(BuildContext context) {
     return TextFormField(
       controller: _emailController,
       keyboardType: TextInputType.emailAddress,
-      decoration: _inputDecoration('Email', Icons.email_outlined),
+      decoration: _inputDecoration(context, 'Email', Icons.email_outlined),
       validator: (valor) {
         if (valor == null || valor.trim().isEmpty) {
           return 'Ingresá tu email';
@@ -110,18 +113,21 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildCampoPassword() {
+  Widget _buildCampoPassword(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return TextFormField(
       controller: _passwordController,
       obscureText: !_verPassword,
       decoration: _inputDecoration(
+        context,
         'Contraseña',
         Icons.lock_outlined,
       ).copyWith(
         suffixIcon: IconButton(
           icon: Icon(
             _verPassword ? Icons.visibility_off : Icons.visibility,
-            color: Colors.grey[500],
+            color: cs.onSurfaceVariant,
             size: 20,
           ),
           onPressed: () => setState(() => _verPassword = !_verPassword),
@@ -136,25 +142,28 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildBotonLogin() {
+  Widget _buildBotonLogin(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return SizedBox(
       width: double.infinity,
       child: FilledButton(
         onPressed: _cargando ? null : _iniciarSesion,
         style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFF1D9E75),
+          backgroundColor: cs.primary,
+          foregroundColor: cs.onPrimary,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
         ),
         child: _cargando
-            ? const SizedBox(
+            ? SizedBox(
                 height: 20,
                 width: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: cs.onPrimary,
                 ),
               )
             : const Text(
@@ -165,13 +174,15 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildLinkRegistro() {
+  Widget _buildLinkRegistro(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           '¿No tenés cuenta? ',
-          style: TextStyle(color: Colors.grey[600]),
+          style: TextStyle(color: cs.onSurfaceVariant),
         ),
         GestureDetector(
           onTap: () {
@@ -182,10 +193,10 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             );
           },
-          child: const Text(
+          child: Text(
             'Registrate',
             style: TextStyle(
-              color: Color(0xFF1D9E75),
+              color: cs.primary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -194,21 +205,23 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  InputDecoration _inputDecoration(String label, IconData icono) {
+  InputDecoration _inputDecoration(BuildContext context, String label, IconData icono) {
+    final cs = Theme.of(context).colorScheme;
+
     return InputDecoration(
       labelText: label,
-      prefixIcon: Icon(icono, size: 20, color: Colors.grey[500]),
+      prefixIcon: Icon(icono, size: 20, color: cs.onSurfaceVariant),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+        borderSide: BorderSide(color: cs.outline),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+        borderSide: BorderSide(color: cs.outlineVariant),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF1D9E75)),
+        borderSide: BorderSide(color: cs.primary),
       ),
     );
   }
@@ -224,10 +237,7 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text,
       );
 
-      // mounted verifica que el widget sigue activo
       if (!mounted) return;
-
-      // Mostramos el dialog de éxito
       _mostrarDialogoExito();
 
     } on FirebaseAuthException catch (e) {
@@ -241,18 +251,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _mostrarDialogoExito() {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (dialogContext) => _DialogExito(
-      onTerminado: () {
-        Navigator.of(context).pop();
-        widget.onLoginExitoso?.call();
-      },
-    ),
-  );
-}
-
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => _DialogExito(
+        onTerminado: () {
+          Navigator.of(context).pop();
+          widget.onLoginExitoso?.call();
+        },
+      ),
+    );
+  }
 
   String _mensajeError(String codigo) {
     switch (codigo) {
@@ -268,11 +277,8 @@ class _LoginScreenState extends State<LoginScreen> {
         return 'Ocurrió un error. Intentá de nuevo';
     }
   }
-
 }
 
-// Widget separado para el dialog — maneja su propio timer
-// sin necesidad de acceder a context externo
 class _DialogExito extends StatefulWidget {
   final VoidCallback onTerminado;
 
@@ -286,20 +292,22 @@ class _DialogExitoState extends State<_DialogExito> {
   @override
   void initState() {
     super.initState();
-    // El timer vive dentro del widget, usa su propio context
     Future.delayed(const Duration(seconds: 2), () {
       if (!mounted) return;
-      Navigator.of(context).pop(); // cierra el dialog
-      widget.onTerminado();        // cierra el login y va al Feed
+      Navigator.of(context).pop();
+      widget.onTerminado();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Dialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
+      backgroundColor: cs.surface,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
         child: Column(
@@ -308,22 +316,23 @@ class _DialogExitoState extends State<_DialogExito> {
             Container(
               width: 64,
               height: 64,
-              decoration: const BoxDecoration(
-                color: Color(0xFFE1F5EE),
+              decoration: BoxDecoration(
+                color: cs.primaryContainer,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.check,
-                color: Color(0xFF1D9E75),
+                color: cs.onPrimaryContainer,
                 size: 36,
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               '¡Sesión iniciada!',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
+                color: cs.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -331,7 +340,7 @@ class _DialogExitoState extends State<_DialogExito> {
               'Bienvenido a ZonaData',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[600],
+                color: cs.onSurfaceVariant,
               ),
             ),
           ],
@@ -340,5 +349,3 @@ class _DialogExitoState extends State<_DialogExito> {
     );
   }
 }
-
-

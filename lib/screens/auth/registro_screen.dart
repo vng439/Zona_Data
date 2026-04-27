@@ -1,5 +1,4 @@
   // lib/screens/auth/registro_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -28,6 +27,8 @@ class _RegistroScreenState extends State<RegistroScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
@@ -41,11 +42,12 @@ class _RegistroScreenState extends State<RegistroScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Crear cuenta',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w500,
+                    color: cs.onSurface,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -53,17 +55,17 @@ class _RegistroScreenState extends State<RegistroScreen> {
                   'Tu nombre aparecerá en los reportes que publiques',
                   style: TextStyle(
                     fontSize: 15,
-                    color: Colors.grey[600],
+                    color: cs.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 32),
-                _buildCampoNombre(),
+                _buildCampoNombre(context),
                 const SizedBox(height: 16),
-                _buildCampoEmail(),
+                _buildCampoEmail(context),
                 const SizedBox(height: 16),
-                _buildCampoPassword(),
+                _buildCampoPassword(context),
                 const SizedBox(height: 32),
-                _buildBotonRegistro(),
+                _buildBotonRegistro(context),
               ],
             ),
           ),
@@ -72,11 +74,11 @@ class _RegistroScreenState extends State<RegistroScreen> {
     );
   }
 
-  Widget _buildCampoNombre() {
+  Widget _buildCampoNombre(BuildContext context) {
     return TextFormField(
       controller: _nombreController,
       textCapitalization: TextCapitalization.words,
-      decoration: _inputDecoration('Nombre o apodo', Icons.person_outline),
+      decoration: _inputDecoration(context, 'Nombre o apodo', Icons.person_outline),
       validator: (valor) {
         if (valor == null || valor.trim().isEmpty) {
           return 'Ingresá tu nombre o apodo';
@@ -89,11 +91,11 @@ class _RegistroScreenState extends State<RegistroScreen> {
     );
   }
 
-  Widget _buildCampoEmail() {
+  Widget _buildCampoEmail(BuildContext context) {
     return TextFormField(
       controller: _emailController,
       keyboardType: TextInputType.emailAddress,
-      decoration: _inputDecoration('Email', Icons.email_outlined),
+      decoration: _inputDecoration(context, 'Email', Icons.email_outlined),
       validator: (valor) {
         if (valor == null || valor.trim().isEmpty) {
           return 'Ingresá tu email';
@@ -106,18 +108,21 @@ class _RegistroScreenState extends State<RegistroScreen> {
     );
   }
 
-  Widget _buildCampoPassword() {
+  Widget _buildCampoPassword(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return TextFormField(
       controller: _passwordController,
       obscureText: !_verPassword,
       decoration: _inputDecoration(
+        context,
         'Contraseña',
         Icons.lock_outlined,
       ).copyWith(
         suffixIcon: IconButton(
           icon: Icon(
             _verPassword ? Icons.visibility_off : Icons.visibility,
-            color: Colors.grey[500],
+            color: cs.onSurfaceVariant,
             size: 20,
           ),
           onPressed: () => setState(() => _verPassword = !_verPassword),
@@ -135,25 +140,28 @@ class _RegistroScreenState extends State<RegistroScreen> {
     );
   }
 
-  Widget _buildBotonRegistro() {
+  Widget _buildBotonRegistro(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return SizedBox(
       width: double.infinity,
       child: FilledButton(
         onPressed: _cargando ? null : _registrar,
         style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFF1D9E75),
+          backgroundColor: cs.primary,
+          foregroundColor: cs.onPrimary,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
         ),
         child: _cargando
-            ? const SizedBox(
+            ? SizedBox(
                 height: 20,
                 width: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: cs.onPrimary,
                 ),
               )
             : const Text(
@@ -164,21 +172,23 @@ class _RegistroScreenState extends State<RegistroScreen> {
     );
   }
 
-  InputDecoration _inputDecoration(String label, IconData icono) {
+  InputDecoration _inputDecoration(BuildContext context, String label, IconData icono) {
+    final cs = Theme.of(context).colorScheme;
+
     return InputDecoration(
       labelText: label,
-      prefixIcon: Icon(icono, size: 20, color: Colors.grey[500]),
+      prefixIcon: Icon(icono, size: 20, color: cs.onSurfaceVariant),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+        borderSide: BorderSide(color: cs.outline),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+        borderSide: BorderSide(color: cs.outlineVariant),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF1D9E75)),
+        borderSide: BorderSide(color: cs.primary),
       ),
     );
   }
@@ -195,13 +205,11 @@ class _RegistroScreenState extends State<RegistroScreen> {
         password: _passwordController.text,
       );
 
-      // Guardamos el nombre en el perfil de Firebase Auth
       await credencial.user?.updateDisplayName(
         _nombreController.text.trim(),
       );
 
       if (!mounted) return;
-      // Volvemos al login — el StreamBuilder detecta el login y redirige
       Navigator.pop(context);
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
@@ -226,5 +234,3 @@ class _RegistroScreenState extends State<RegistroScreen> {
     }
   }
 }
-
-

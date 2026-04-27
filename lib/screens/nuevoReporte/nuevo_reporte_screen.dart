@@ -14,26 +14,17 @@ class NuevoReporteScreen extends StatefulWidget {
 }
 
 class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
-  // _formKey identifica al formulario y permite validarlo
   final _formKey = GlobalKey<FormState>();
-
-  // Controllers capturan el texto que escribe el usuario
   final _tituloController = TextEditingController();
   final _descripcionController = TextEditingController();
-
-  // Categoría seleccionada — empieza en null (sin seleccionar)
   CategoriaReporte? _categoriaSeleccionada;
-
-  // Indica si el formulario se está "enviando" para mostrar un loader
   bool _enviando = false;
-
   double? _latitud;
   double? _longitud;
   bool _obteniendoUbicacion = false;
 
   @override
   void dispose() {
-    // Liberar los controllers cuando se cierra la pantalla
     _tituloController.dispose();
     _descripcionController.dispose();
     super.dispose();
@@ -58,23 +49,23 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildLabel('Categoría'),
+              _buildLabel(context, 'Categoría'),
               const SizedBox(height: 8),
-              _buildSelectorCategoria(),
+              _buildSelectorCategoria(context),
               const SizedBox(height: 24),
-              _buildLabel('Título'),
+              _buildLabel(context, 'Título'),
               const SizedBox(height: 8),
-              _buildCampoTitulo(),
+              _buildCampoTitulo(context),
               const SizedBox(height: 24),
-              _buildLabel('Descripción'),
+              _buildLabel(context, 'Descripción'),
               const SizedBox(height: 8),
-              _buildCampoDescripcion(),
+              _buildCampoDescripcion(context),
               const SizedBox(height: 24),
-              _buildLabel('Ubicación'),
+              _buildLabel(context, 'Ubicación'),
               const SizedBox(height: 8),
-              _buildSelectorUbicacion(),
+              _buildSelectorUbicacion(context),
               const SizedBox(height: 32),
-              _buildBotonEnviar(),
+              _buildBotonEnviar(context),
             ],
           ),
         ),
@@ -82,21 +73,23 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
     );
   }
 
-  // Etiqueta de sección reutilizable
-  Widget _buildLabel(String texto) {
+  Widget _buildLabel(BuildContext context, String texto) {
+    final cs = Theme.of(context).colorScheme;
+
     return Text(
       texto,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w500,
+        color: cs.onSurface,
       ),
     );
   }
 
-  // Grilla de chips para seleccionar categoría
-  Widget _buildSelectorCategoria() {
+  Widget _buildSelectorCategoria(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Wrap(
-      // Wrap acomoda los chips en múltiples filas si no entran en una sola
       spacing: 8,
       runSpacing: 8,
       children: CategoriaReporte.values.map((categoria) {
@@ -108,7 +101,6 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
             });
           },
           child: AnimatedContainer(
-            // AnimatedContainer hace la transición de colores suavemente
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
@@ -119,18 +111,17 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
               border: Border.all(
                 color: seleccionada
                     ? colorTextoCategoria(categoria).withValues(alpha: 0.4)
-                    : Colors.grey.withValues(alpha: 0.3),
+                    : cs.outlineVariant,
               ),
             ),
             child: Text(
               labelCategoria(categoria),
               style: TextStyle(
                 fontSize: 13,
-                fontWeight:
-                    seleccionada ? FontWeight.w500 : FontWeight.normal,
+                fontWeight: seleccionada ? FontWeight.w500 : FontWeight.normal,
                 color: seleccionada
                     ? colorTextoCategoria(categoria)
-                    : Colors.grey[600],
+                    : cs.onSurfaceVariant,
               ),
             ),
           ),
@@ -139,67 +130,70 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
     );
   }
 
-  Widget _buildCampoTitulo() {
+  Widget _buildCampoTitulo(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return TextFormField(
       controller: _tituloController,
       decoration: InputDecoration(
         hintText: 'Ej: Bache en Av. San Martín',
-        hintStyle: TextStyle(color: Colors.grey[400]),
+        hintStyle: TextStyle(color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+          borderSide: BorderSide(color: cs.outline),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+          borderSide: BorderSide(color: cs.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF1D9E75)),
+          borderSide: BorderSide(color: cs.primary),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 12,
         ),
       ),
-      maxLength: 80, // límite de caracteres para el título
+      maxLength: 80,
       validator: (valor) {
-        // validator se ejecuta cuando se intenta enviar el formulario
         if (valor == null || valor.trim().isEmpty) {
           return 'El título no puede estar vacío';
         }
         if (valor.trim().length < 10) {
           return 'El título debe tener al menos 10 caracteres';
         }
-        return null; // null significa que es válido
+        return null;
       },
     );
   }
 
-  Widget _buildCampoDescripcion() {
+  Widget _buildCampoDescripcion(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return TextFormField(
       controller: _descripcionController,
       decoration: InputDecoration(
         hintText: 'Describí el problema con el mayor detalle posible...',
-        hintStyle: TextStyle(color: Colors.grey[400]),
+        hintStyle: TextStyle(color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+          borderSide: BorderSide(color: cs.outline),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+          borderSide: BorderSide(color: cs.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF1D9E75)),
+          borderSide: BorderSide(color: cs.primary),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 12,
         ),
       ),
-      maxLines: 5,    // campo de texto alto para descripción
+      maxLines: 5,
       maxLength: 500,
       validator: (valor) {
         if (valor == null || valor.trim().isEmpty) {
@@ -213,25 +207,28 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
     );
   }
 
-  Widget _buildBotonEnviar() {
+  Widget _buildBotonEnviar(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return SizedBox(
       width: double.infinity,
       child: FilledButton(
         onPressed: _enviando ? null : _enviarFormulario,
         style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFF1D9E75),
+          backgroundColor: cs.primary,
+          foregroundColor: cs.onPrimary,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
         ),
         child: _enviando
-            ? const SizedBox(
+            ? SizedBox(
                 height: 20,
                 width: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: cs.onPrimary,
                 ),
               )
             : const Text(
@@ -243,137 +240,132 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
   }
 
   Future<void> _obtenerUbicacion() async {
-  setState(() => _obteniendoUbicacion = true);
+    setState(() => _obteniendoUbicacion = true);
 
-  final posicion = await UbicacionService().obtenerUbicacion();
+    final posicion = await UbicacionService().obtenerUbicacion();
 
-  if (!mounted) return;
+    if (!mounted) return;
 
-  if (posicion != null) {
-    setState(() {
-      _latitud = posicion.latitude;
-      _longitud = posicion.longitude;
-    });
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('No se pudo obtener la ubicación'),
+    if (posicion != null) {
+      setState(() {
+        _latitud = posicion.latitude;
+        _longitud = posicion.longitude;
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo obtener la ubicación'),
+        ),
+      );
+    }
+
+    setState(() => _obteniendoUbicacion = false);
+  }
+
+  Widget _buildSelectorUbicacion(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return GestureDetector(
+      onTap: _obteniendoUbicacion ? null : _obtenerUbicacion,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: _latitud != null ? cs.primary : cs.outlineVariant,
+          ),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              _latitud != null
+                  ? Icons.location_on
+                  : Icons.location_on_outlined,
+              color: _latitud != null ? cs.primary : cs.onSurfaceVariant,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _obteniendoUbicacion
+                  ? Text(
+                      'Obteniendo ubicación...',
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14),
+                    )
+                  : Text(
+                      _latitud != null
+                          ? 'Ubicación obtenida correctamente'
+                          : 'Tocar para obtener ubicación actual',
+                      style: TextStyle(
+                        color: _latitud != null ? cs.primary : cs.onSurfaceVariant,
+                        fontSize: 14,
+                      ),
+                    ),
+            ),
+            if (_obteniendoUbicacion)
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: cs.primary,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
-
-  setState(() => _obteniendoUbicacion = false);
-}
-
-  Widget _buildSelectorUbicacion() {
-  return GestureDetector(
-    onTap: _obteniendoUbicacion ? null : _obtenerUbicacion,
-    child: Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: _latitud != null
-              ? const Color(0xFF1D9E75)
-              : Colors.grey.withValues(alpha: 0.3),
-        ),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            _latitud != null
-                ? Icons.location_on
-                : Icons.location_on_outlined,
-            color: _latitud != null
-                ? const Color(0xFF1D9E75)
-                : Colors.grey[500],
-            size: 20,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _obteniendoUbicacion
-                ? const Text('Obteniendo ubicación...')
-                : Text(
-                    _latitud != null
-                        ? 'Ubicación obtenida correctamente'
-                        : 'Tocar para obtener ubicación actual',
-                    style: TextStyle(
-                      color: _latitud != null
-                          ? const Color(0xFF1D9E75)
-                          : Colors.grey[500],
-                      fontSize: 14,
-                    ),
-                  ),
-          ),
-          if (_obteniendoUbicacion)
-            const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Color(0xFF1D9E75),
-              ),
-            ),
-        ],
-      ),
-    ),
-  );
-}
 
   Future<void> _enviarFormulario() async {
-  if (_categoriaSeleccionada == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Seleccioná una categoría')),
-    );
-    return;
-  }
+    if (_categoriaSeleccionada == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Seleccioná una categoría')),
+      );
+      return;
+    }
 
-  if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
-  // Verificamos que haya un usuario autenticado
-  final usuario = FirebaseAuth.instance.currentUser;
-  if (usuario == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Necesitás iniciar sesión para publicar')),
-    );
-    return;
-  }
+    final usuario = FirebaseAuth.instance.currentUser;
+    if (usuario == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Necesitás iniciar sesión para publicar')),
+      );
+      return;
+    }
 
-  setState(() => _enviando = true);
+    setState(() => _enviando = true);
 
-  try {
-    final reporte = Reporte(
-      id: '',
-      titulo: _tituloController.text.trim(),
-      descripcion: _descripcionController.text.trim(),
-      categoria: _categoriaSeleccionada!,
-      fecha: DateTime.now(),
-      autorId: usuario.uid,
-      autorNombre: usuario.displayName ?? 'Usuario',
-      latitud: _latitud,
-      longitud: _longitud,
-);
+    try {
+      final reporte = Reporte(
+        id: '',
+        titulo: _tituloController.text.trim(),
+        descripcion: _descripcionController.text.trim(),
+        categoria: _categoriaSeleccionada!,
+        fecha: DateTime.now(),
+        autorId: usuario.uid,
+        autorNombre: usuario.displayName ?? 'Usuario',
+        latitud: _latitud,
+        longitud: _longitud,
+      );
 
-    await ReporteService().crearReporte(reporte);
+      await ReporteService().crearReporte(reporte);
 
-    if (!mounted) return;
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Reporte publicado correctamente'),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Error al publicar. Intentá de nuevo')),
-    );
-  } finally {
-    if (mounted) setState(() => _enviando = false);
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Reporte publicado correctamente'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al publicar. Intentá de nuevo')),
+      );
+    } finally {
+      if (mounted) setState(() => _enviando = false);
+    }
   }
 }
-}
-
-
-

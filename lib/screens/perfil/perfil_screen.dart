@@ -5,13 +5,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../auth/login_screen.dart';
 
 class PerfilScreen extends StatelessWidget {
-  // Función que se ejecuta cuando el login fue exitoso
   final VoidCallback? onLoginExitoso;
 
   const PerfilScreen({super.key, this.onLoginExitoso});
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Perfil',
@@ -24,9 +25,9 @@ class PerfilScreen extends StatelessWidget {
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
+            return Center(
               child: CircularProgressIndicator(
-                color: Color(0xFF1D9E75),
+                color: cs.primary,
               ),
             );
           }
@@ -44,18 +45,20 @@ class PerfilScreen extends StatelessWidget {
   }
 
   Widget _buildSinUsuario(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.person_outline, size: 64, color: Colors.grey[300]),
+            Icon(Icons.person_outline, size: 64, color: cs.onSurface.withValues(alpha: 0.2)),
             const SizedBox(height: 16),
             Text(
               'Creá una cuenta para publicar reportes',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 16, color: cs.onSurfaceVariant),
             ),
             const SizedBox(height: 24),
             FilledButton(
@@ -70,9 +73,9 @@ class PerfilScreen extends StatelessWidget {
                 );
               },
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF1D9E75),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 32, vertical: 12),
+                backgroundColor: cs.primary,
+                foregroundColor: cs.onPrimary,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -86,6 +89,8 @@ class PerfilScreen extends StatelessWidget {
   }
 
   Widget _buildConUsuario(BuildContext context, User usuario) {
+    final cs = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -95,13 +100,12 @@ class PerfilScreen extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 32,
-                backgroundColor: const Color(0xFF1D9E75),
+                backgroundColor: cs.primary,
                 child: Text(
-                  (usuario.displayName ?? usuario.email ?? '?')[0]
-                      .toUpperCase(),
-                  style: const TextStyle(
+                  (usuario.displayName ?? usuario.email ?? '?')[0].toUpperCase(),
+                  style: TextStyle(
                     fontSize: 24,
-                    color: Colors.white,
+                    color: cs.onPrimary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -112,16 +116,17 @@ class PerfilScreen extends StatelessWidget {
                 children: [
                   Text(
                     usuario.displayName ?? 'Sin nombre',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
+                      color: cs.onSurface,
                     ),
                   ),
                   Text(
                     usuario.email ?? '',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey[600],
+                      color: cs.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -129,14 +134,14 @@ class PerfilScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 40),
-          const Divider(),
+          Divider(color: cs.outlineVariant),
           const SizedBox(height: 16),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.logout, color: Colors.redAccent),
-            title: const Text(
+            leading: Icon(Icons.logout, color: cs.error),
+            title: Text(
               'Cerrar sesión',
-              style: TextStyle(color: Colors.redAccent),
+              style: TextStyle(color: cs.error),
             ),
             onTap: () async {
               await FirebaseAuth.instance.signOut();
@@ -147,4 +152,3 @@ class PerfilScreen extends StatelessWidget {
     );
   }
 }
-
