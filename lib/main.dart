@@ -30,7 +30,7 @@ class ZonaDataApp extends StatelessWidget {
 
 
     // Azul profundo — Santa Cruz
-    primary: Color(0xFF2D2A77),
+    primary: Color(0xFF0D47A1),
     onPrimary: Color(0xFFFFFFFF),
     primaryContainer: Color(0xFFE8E7F5),
     onPrimaryContainer: Color(0xFF1A1850),
