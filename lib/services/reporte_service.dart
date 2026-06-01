@@ -1,15 +1,15 @@
 // lib/services/reporte_service.dart
-
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/reports.dart';
+import 'almacenamiento_service.dart';
 
 class ReporteService {
-  // Referencia a la colección de reportes en Firestore
   final CollectionReference _coleccion =
       FirebaseFirestore.instance.collection('reportes');
 
-  // Escucha los reportes en tiempo real, ordenados por fecha descendente
-  // Stream significa que se actualiza automáticamente cuando hay cambios
+  final StorageService _storageService = StorageService();
+
   Stream<List<Reporte>> obtenerReportes() {
     return _coleccion
         .orderBy('fecha', descending: true)
@@ -21,15 +21,44 @@ class ReporteService {
     });
   }
 
-  // Guarda un nuevo reporte en Firestore
-  Future<void> crearReporte(Reporte reporte) async {
-    await _coleccion.add(reporte.toMap());
+  /// Crea un reporte en Firestore. Si se pasa [imagenFile], primero
+  /// sube ambas versiones a Storage y guarda las URLs en el documento.
+  Future<void> crearReporte(Reporte reporte, {File? imagenFile}) async {
+    String? imagenUrl;
+    String? thumbnailUrl;
+
+    if (imagenFile != null) {
+      final urls = await _storageService.subirImagenReporte(
+        imagen: imagenFile,
+        autorId: reporte.autorId,
+      );
+      imagenUrl = urls.imagenUrl;
+      thumbnailUrl = urls.thumbnailUrl;
+    }
+
+    final reporteFinal = Reporte(
+      id: reporte.id,
+      titulo: reporte.titulo,
+      descripcion: reporte.descripcion,
+      categoria: reporte.categoria,
+      fecha: reporte.fecha,
+      autorId: reporte.autorId,
+      autorNombre: reporte.autorNombre,
+      estado: reporte.estado,
+      respuestaAdmin: reporte.respuestaAdmin,
+      latitud: reporte.latitud,
+      longitud: reporte.longitud,
+      imagenUrl: imagenUrl,
+      thumbnailUrl: thumbnailUrl,
+    );
+
+    await _coleccion.add(reporteFinal.toMap());
   }
 
-  // Cambia el estado a pendienteDeCierre
   Future<void> solicitarCierre(String reporteId) async {
     await _coleccion.doc(reporteId).update({
       'estado': EstadoReporte.pendienteDeCierre.name,
     });
   }
 }
+

@@ -1,5 +1,4 @@
 // lib/models/reporte.dart
-
 enum CategoriaReporte {
   vial,
   electrico,
@@ -29,6 +28,8 @@ class Reporte {
   final String? respuestaAdmin;
   final double? latitud;
   final double? longitud;
+  final String? imagenUrl;
+  final String? thumbnailUrl;
 
   const Reporte({
     required this.id,
@@ -42,13 +43,15 @@ class Reporte {
     this.respuestaAdmin,
     this.latitud,
     this.longitud,
+    this.imagenUrl,
+    this.thumbnailUrl,
   });
 
   Map<String, dynamic> toMap() {
     return {
       'titulo': titulo,
       'descripcion': descripcion,
-      'categoria': categoria.name,   
+      'categoria': categoria.name,
       'fecha': fecha,
       'autorId': autorId,
       'autorNombre': autorNombre,
@@ -56,6 +59,8 @@ class Reporte {
       'respuestaAdmin': respuestaAdmin,
       'latitud': latitud,
       'longitud': longitud,
+      'imagenUrl': imagenUrl,
+      'thumbnailUrl': thumbnailUrl,
     };
   }
 
@@ -76,8 +81,15 @@ class Reporte {
         orElse: () => EstadoReporte.activo,
       ),
       respuestaAdmin: map['respuestaAdmin'],
-      latitud: map['latitud'] != null ? (map['latitud'] as num).toDouble() : null,
-      longitud: map['longitud'] != null ? (map['longitud'] as num).toDouble() : null,
+      latitud: map['latitud'] != null
+          ? (map['latitud'] as num).toDouble()
+          : null,
+      longitud: map['longitud'] != null
+          ? (map['longitud'] as num).toDouble()
+          : null,
+      imagenUrl: map['imagenUrl'],
+      thumbnailUrl: map['thumbnailUrl'],
     );
   }
 }
+

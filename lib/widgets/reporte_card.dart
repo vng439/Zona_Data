@@ -1,11 +1,10 @@
 // lib/widgets/reporte_card.dart
-
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../models/reports.dart';
 import '../utils/reporte_helpers.dart';
 
 class ReporteCard extends StatelessWidget {
-  // El widget recibe un Reporte y una función opcional para cuando se toca
   final Reporte reporte;
   final VoidCallback? onTap;
 
@@ -18,9 +17,8 @@ class ReporteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      // Card de Flutter ya maneja el fondo blanco y el borde redondeado
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      elevation: 0, // sin sombra, estilo flat
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
@@ -29,30 +27,68 @@ class ReporteCard extends StatelessWidget {
         ),
       ),
       child: InkWell(
-        // InkWell agrega el efecto de toque (ripple) al card
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 8),
-              _buildTitulo(),
-              const SizedBox(height: 4),
-              _buildDescripcion(),
-              _buildRespuestaAdmin(),
-              const SizedBox(height: 12),
-              _buildFooter(),
-            ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Banner de thumbnail, solo visible si hay imagen
+            if (reporte.thumbnailUrl != null)
+              _buildThumbnailBanner(context),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(),
+                  const SizedBox(height: 8),
+                  _buildTitulo(),
+                  const SizedBox(height: 4),
+                  _buildDescripcion(),
+                  _buildRespuestaAdmin(),
+                  const SizedBox(height: 12),
+                  _buildFooter(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThumbnailBanner(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+      child: CachedNetworkImage(
+        imageUrl: reporte.thumbnailUrl!,
+        height: 140,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        // Placeholder mientras carga: shimmer suave con el color del tema
+        placeholder: (context, url) => Container(
+          height: 140,
+          color: Colors.grey.withValues(alpha: 0.15),
+          child: const Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 1.5),
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) => Container(
+          height: 140,
+          color: Colors.grey.withValues(alpha: 0.1),
+          child: const Center(
+            child: Icon(Icons.broken_image_outlined,
+                color: Colors.grey, size: 28),
           ),
         ),
       ),
     );
   }
 
-  // Fila superior: badge de categoría + badge de estado
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -87,16 +123,16 @@ class ReporteCard extends StatelessWidget {
       style: TextStyle(
         fontSize: 13,
         color: Colors.grey[600],
-        height: 1.5, // interlineado
+        height: 1.5,
       ),
       maxLines: 3,
-      overflow: TextOverflow.ellipsis, // corta con "..." si es muy largo
+      overflow: TextOverflow.ellipsis,
     );
   }
 
-  // Solo se muestra si hay respuesta del admin o está pendiente de cierre
   Widget _buildRespuestaAdmin() {
-    if (reporte.estado == EstadoReporte.resuelto && reporte.respuestaAdmin != null) {
+    if (reporte.estado == EstadoReporte.resuelto &&
+        reporte.respuestaAdmin != null) {
       return _InfoBox(
         label: 'Respuesta del administrador',
         texto: reporte.respuestaAdmin!,
@@ -114,11 +150,9 @@ class ReporteCard extends StatelessWidget {
       );
     }
 
-    // Si no hay nada que mostrar, devolvemos un widget vacío
     return const SizedBox.shrink();
   }
 
-  // Fila inferior: autor + fecha
   Widget _buildFooter() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -136,8 +170,6 @@ class ReporteCard extends StatelessWidget {
   }
 }
 
-// Widget privado para los badges de categoría y estado
-// El guión bajo en el nombre indica que es privado a este archivo
 class _Badge extends StatelessWidget {
   final String texto;
   final Color colorFondo;
@@ -169,7 +201,6 @@ class _Badge extends StatelessWidget {
   }
 }
 
-// Widget privado para el bloque de respuesta admin o aviso de cierre pendiente
 class _InfoBox extends StatelessWidget {
   final String label;
   final String texto;
@@ -215,3 +246,4 @@ class _InfoBox extends StatelessWidget {
     );
   }
 }
+

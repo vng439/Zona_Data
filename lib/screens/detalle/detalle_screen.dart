@@ -1,5 +1,6 @@
 // lib/screens/detalle/detalle_screen.dart
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../models/reports.dart';
 import '../../utils/reporte_helpers.dart';
@@ -31,6 +32,11 @@ class DetalleScreen extends StatelessWidget {
             _buildTitulo(context),
             const SizedBox(height: 8),
             _buildDescripcion(context),
+            // Imagen completa, solo si existe
+            if (reporte.imagenUrl != null) ...[
+              const SizedBox(height: 16),
+              _buildImagenCompleta(context),
+            ],
             const SizedBox(height: 16),
             _buildDivider(context),
             const SizedBox(height: 16),
@@ -39,6 +45,43 @@ class DetalleScreen extends StatelessWidget {
             const SizedBox(height: 32),
             _buildBotonCierre(context),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImagenCompleta(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: CachedNetworkImage(
+        imageUrl: reporte.imagenUrl!,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          height: 200,
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 1.5,
+              color: cs.primary,
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) => Container(
+          height: 120,
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: Icon(Icons.broken_image_outlined,
+                color: cs.onSurfaceVariant, size: 32),
+          ),
         ),
       ),
     );
@@ -263,9 +306,7 @@ class DetalleScreen extends StatelessWidget {
                 ),
               );
             },
-            style: TextButton.styleFrom(
-              foregroundColor: cs.primary,
-            ),
+            style: TextButton.styleFrom(foregroundColor: cs.primary),
             child: const Text('Confirmar'),
           ),
         ],
@@ -273,3 +314,4 @@ class DetalleScreen extends StatelessWidget {
     );
   }
 }
+
