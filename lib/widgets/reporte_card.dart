@@ -45,6 +45,7 @@ class ReporteCard extends StatelessWidget {
                   _buildTitulo(),
                   const SizedBox(height: 4),
                   _buildDescripcion(),
+                  _buildApoyos(),
                   _buildRespuestaAdmin(),
                   const SizedBox(height: 12),
                   _buildFooter(),
@@ -128,6 +129,24 @@ class ReporteCard extends StatelessWidget {
       maxLines: 3,
       overflow: TextOverflow.ellipsis,
     );
+  }
+
+  Widget _buildApoyos(){
+    if (reporte.apoyos == 0) return const SizedBox.shrink(); {
+      return Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child:Row(
+          children: [
+            Icon(Icons.people_outline, size: 14, color: Colors.grey[500]),
+            const SizedBox(width: 4),
+            Text(
+              '${reporte.apoyos} ${reporte.apoyos == 1 ? 'persona se sumó' : 'personas se sumaron'} a este reporte',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Widget _buildRespuestaAdmin() {

@@ -6,6 +6,7 @@ import '../../services/zona_critica_service.dart';
 import '../../models/reports.dart';
 import '../../models/zona_critica.dart';
 import '../../utils/reporte_helpers.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 
 class SelectorUbicacionScreen extends StatefulWidget {
   const SelectorUbicacionScreen({super.key});
@@ -81,45 +82,79 @@ class _SelectorUbicacionScreenState extends State<SelectorUbicacionScreen> {
                   },
                 ),
                 children: [
+                  // Capa base OpenStreetMap
                   TileLayer(
                     urlTemplate:
                         'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                     userAgentPackageName: 'com.ldsw.zona_data',
                   ),
 
-                  // Zonas críticas
+                  // Capa de zonas críticas
                   CircleLayer(
                     circles: zonasCriticas
                         .map((zona) => _buildCirculoZona(zona))
                         .toList(),
                   ),
 
-                  // Marcadores de reportes existentes
-                  MarkerLayer(
-                    markers: reportesConUbicacion.map((reporte) {
-                      return Marker(
-                        point: LatLng(reporte.latitud!, reporte.longitud!),
-                        width: 36,
-                        height: 36,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: colorCategoria(reporte.categoria)
-                                .withValues(alpha: 0.85),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: colorTextoCategoria(reporte.categoria),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Icon(
-                            _iconoCategoria(reporte.categoria),
-                            size: 18,
-                            color: colorTextoCategoria(reporte.categoria),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                  // Capa de marcadores individuales
+                  // Capa de marcadores con clustering
+MarkerClusterLayerWidget(
+  options: MarkerClusterLayerOptions(
+    maxClusterRadius: 60,
+    size: const Size(44, 44),
+    markers: reportesConUbicacion.map((reporte) {
+      return Marker(
+        point: LatLng(reporte.latitud!, reporte.longitud!),
+        width: 36,
+        height: 36,
+        child: Container(
+          decoration: BoxDecoration(
+            color: colorCategoria(reporte.categoria)
+                .withValues(alpha: 0.85),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: colorTextoCategoria(reporte.categoria),
+              width: 1.5,
+            ),
+          ),
+          child: Icon(
+            iconoCategoria(reporte.categoria),
+            size: 18,
+            color: colorTextoCategoria(reporte.categoria),
+          ),
+        ),
+      );
+    }).toList(),
+    builder: (context, markers) {
+      final color = _colorCluster(markers.length);
+      return Container(
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.4),
+              blurRadius: 6,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            '${markers.length}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      );
+    },
+  ),
+),
+
+
 
                   // Pin de ubicación seleccionada
                   if (_ubicacionSeleccionada != null)
@@ -177,35 +212,31 @@ class _SelectorUbicacionScreenState extends State<SelectorUbicacionScreen> {
   }
 
   CircleMarker _buildCirculoZona(ZonaCritica zona) {
+    final color = _colorPorNivel(zona.nivelCriticidad);
     return CircleMarker(
       point: LatLng(zona.latitudCentro, zona.longitudCentro),
       radius: zona.radioMetros,
       useRadiusInMeter: true,
-      color: Colors.red.withValues(alpha: 0.3),
-      borderColor: Colors.red,
-      borderStrokeWidth: 2,
+      color: color.withValues(alpha: 0.12),
+      borderColor: color,
+      borderStrokeWidth: 3,
     );
   }
 
-  IconData _iconoCategoria(CategoriaReporte categoria) {
-    switch (categoria) {
-      case CategoriaReporte.vial:
-        return Icons.route;
-      case CategoriaReporte.electrico:
-        return Icons.bolt;
-      case CategoriaReporte.agua:
-        return Icons.water_drop;
-      case CategoriaReporte.cloacal:
-        return Icons.plumbing;
-      case CategoriaReporte.espaciosVerdes:
-        return Icons.park;
-      case CategoriaReporte.residuos:
-        return Icons.delete_outline;
-      case CategoriaReporte.seguridadVial:
-        return Icons.warning_amber;
-      case CategoriaReporte.edificiosPublicos:
-        return Icons.business;
+  Color _colorPorNivel(NivelCriticidad nivel) {
+    switch (nivel) {
+      case NivelCriticidad.moderada:
+        return const Color(0xFFE6A817);
+      case NivelCriticidad.alta:
+        return const Color(0xFFE06B1A);
+      case NivelCriticidad.critica:
+        return const Color(0xFFCC2A2A);
     }
   }
-}
 
+  Color _colorCluster(int cantidad) {
+    if (cantidad >= 10) return const Color(0xFFCC2A2A);
+    if (cantidad >= 5) return const Color(0xFFE06B1A);
+    return const Color(0xFFE6A817);
+}
+}

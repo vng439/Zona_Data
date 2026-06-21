@@ -528,60 +528,209 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
 }
 
   Future<void> _enviarFormulario() async {
-    if (_categoriaSeleccionada == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Seleccioná una categoría')),
-      );
-      return;
-    }
+  if (_categoriaSeleccionada == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Seleccioná una categoría')),
+    );
+    return;
+  }
 
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    final usuario = FirebaseAuth.instance.currentUser;
-    if (usuario == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Necesitás iniciar sesión para publicar')),
-      );
-      return;
-    }
+  final usuario = FirebaseAuth.instance.currentUser;
+  if (usuario == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Necesitás iniciar sesión para publicar')),
+    );
+    return;
+  }
 
+  // Solo verificar duplicados si hay ubicación
+  if (_latitud != null && _longitud != null) {
     setState(() => _enviando = true);
 
-    try {
-      final reporte = Reporte(
-        id: '',
-        titulo: _tituloController.text.trim(),
-        descripcion: _descripcionController.text.trim(),
-        categoria: _categoriaSeleccionada!,
-        fecha: DateTime.now(),
-        autorId: usuario.uid,
-        autorNombre: usuario.displayName ?? 'Usuario',
-        latitud: _latitud,
-        longitud: _longitud,
-      );
+    final cercanos = await ReporteService().buscarReportesCercanos(
+      categoria: _categoriaSeleccionada!,
+      latitud: _latitud!,
+      longitud: _longitud!,
+    );
 
-      await ReporteService().crearReporte(
-        reporte,
-        imagenFile: _imagenSeleccionada,
-      );
+    if (!mounted) return;
+    setState(() => _enviando = false);
 
+    if (cercanos.isNotEmpty) {
+      final continuar = await _mostrarDialogoDuplicados(cercanos, usuario.uid);
       if (!mounted) return;
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Reporte publicado correctamente'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Error al publicar. Intentá de nuevo')),
-      );
-    } finally {
-      if (mounted) setState(() => _enviando = false);
+      if (!continuar) return;
     }
   }
+
+  setState(() => _enviando = true);
+
+  try {
+    final reporte = Reporte(
+      id: '',
+      titulo: _tituloController.text.trim(),
+      descripcion: _descripcionController.text.trim(),
+      categoria: _categoriaSeleccionada!,
+      fecha: DateTime.now(),
+      autorId: usuario.uid,
+      autorNombre: usuario.displayName ?? 'Usuario',
+      latitud: _latitud,
+      longitud: _longitud,
+    );
+
+    await ReporteService().crearReporte(
+      reporte,
+      imagenFile: _imagenSeleccionada,
+    );
+
+    if (!mounted) return;
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Reporte publicado correctamente'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Error al publicar. Intentá de nuevo')),
+    );
+  } finally {
+    if (mounted) setState(() => _enviando = false);
+  }
+}
+
+/// Muestra el diálogo de duplicados y devuelve true si el usuario
+/// decide crear el reporte de todas formas.
+Future<bool> _mostrarDialogoDuplicados(
+  List<Reporte> cercanos,
+  String usuarioId,
+) async {
+  final cs = Theme.of(context).colorScheme;
+
+  return await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Reportes cercanos encontrados'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hay reportes de la misma categoría a menos de 50 metros. '
+                  '¿Querés sumarte a alguno o tu caso es diferente?',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: cs.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...cercanos.map((reporte) {
+                  final yaApoyo =
+                      reporte.apoyosUsuarios.contains(usuarioId);
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: cs.surfaceContainerLowest,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: cs.outlineVariant),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          reporte.titulo,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          reporte.autorNombre,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                        if (reporte.apoyos > 0) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '${reporte.apoyos} ${reporte.apoyos == 1 ? 'persona se sumó' : 'personas se sumaron'}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: cs.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: yaApoyo
+                                ? null
+                                : () async {
+                                    await ReporteService().sumarseAReporte(
+                                      reporteId: reporte.id,
+                                      usuarioId: usuarioId,
+                                    );
+                                    if (context.mounted) {
+                                      Navigator.pop(context, false);
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              'Te sumaste al reporte correctamente'),
+                                          duration: Duration(seconds: 2),
+                                        ),
+                                      );
+                                    }
+                                  },
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: Text(
+                              yaApoyo ? 'Ya te sumaste' : 'Sumarme a este reporte',
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                'Cancelar',
+                style: TextStyle(color: cs.onSurfaceVariant),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: TextButton.styleFrom(foregroundColor: cs.primary),
+              child: const Text('Mi caso es diferente'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
+}
+
 }

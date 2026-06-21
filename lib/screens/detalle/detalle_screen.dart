@@ -41,6 +41,7 @@ class DetalleScreen extends StatelessWidget {
             _buildDivider(context),
             const SizedBox(height: 16),
             _buildMetadata(context),
+            _buildApoyos(context),
             _buildInfoBox(context),
             const SizedBox(height: 32),
             _buildBotonCierre(context),
@@ -276,6 +277,34 @@ class DetalleScreen extends StatelessWidget {
           side: BorderSide(color: cs.primary),
           foregroundColor: cs.primary,
         ),
+      ),
+    );
+  }
+
+  Widget _buildApoyos(BuildContext context) {
+    if (reporte.apoyos == 0) return const SizedBox.shrink();
+
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: cs.primaryContainer,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.people_outline, size: 18, color: cs.onPrimaryContainer),
+          const SizedBox(width: 6),
+          Text(
+            '${reporte.apoyos} ${reporte.apoyos == 1 ? 'persona se sumó' : 'personas se sumaron'} a este reporte',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: cs.onPrimaryContainer,
+            ),
+          ),
+        ],
       ),
     );
   }

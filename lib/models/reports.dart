@@ -1,13 +1,13 @@
-// lib/models/reporte.dart
 enum CategoriaReporte {
-  vial,
-  electrico,
-  agua,
-  cloacal,
-  espaciosVerdes,
-  residuos,
-  seguridadVial,
-  edificiosPublicos,
+  bachesYCalles,
+  luminariaYElectrico,
+  aguaYDesagues,
+  espaciosVerdesYPoda,
+  basuraYLimpieza,
+  transitoYSenalizacion,
+  edificiosYEspaciosPublicos,
+  animalesSueltos,
+  otros,
 }
 
 enum EstadoReporte {
@@ -30,6 +30,8 @@ class Reporte {
   final double? longitud;
   final String? imagenUrl;
   final String? thumbnailUrl;
+  final int apoyos;
+  final List<String> apoyosUsuarios;
 
   const Reporte({
     required this.id,
@@ -45,6 +47,8 @@ class Reporte {
     this.longitud,
     this.imagenUrl,
     this.thumbnailUrl,
+    this.apoyos = 0,
+    this.apoyosUsuarios = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -61,6 +65,8 @@ class Reporte {
       'longitud': longitud,
       'imagenUrl': imagenUrl,
       'thumbnailUrl': thumbnailUrl,
+      'apoyos': apoyos,
+      'apoyosUsuarios': apoyosUsuarios,
     };
   }
 
@@ -71,7 +77,7 @@ class Reporte {
       descripcion: map['descripcion'] ?? '',
       categoria: CategoriaReporte.values.firstWhere(
         (c) => c.name == map['categoria'],
-        orElse: () => CategoriaReporte.vial,
+        orElse: () => CategoriaReporte.bachesYCalles,
       ),
       fecha: (map['fecha'] as dynamic).toDate(),
       autorId: map['autorId'] ?? '',
@@ -89,7 +95,8 @@ class Reporte {
           : null,
       imagenUrl: map['imagenUrl'],
       thumbnailUrl: map['thumbnailUrl'],
+      apoyos: map['apoyos'] ?? 0,
+      apoyosUsuarios: List<String>.from(map['apoyosUsuarios'] ?? []),
     );
   }
 }
-

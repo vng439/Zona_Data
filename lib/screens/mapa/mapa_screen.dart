@@ -1,41 +1,29 @@
-// lib/screens/mapa/mapa_screen.dart
-
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // <-- IMPORTANTE PARA VALIDAR SESIÓN
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/reporte_service.dart';
 import '../../services/zona_critica_service.dart';
-import '../../models/reports.dart'; 
+import '../../models/reports.dart';
 import '../../models/zona_critica.dart';
 import '../../utils/reporte_helpers.dart';
 import '../detalle/detalle_screen.dart';
-
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 
 class MapaScreen extends StatefulWidget {
   const MapaScreen({super.key});
-
 
   @override
   State<MapaScreen> createState() => _MapaScreenState();
 }
 
-
 class _MapaScreenState extends State<MapaScreen> {
-  // Centro inicial del mapa (Caleta Olivia)
   static const LatLng _centroInicial = LatLng(-46.4333, -67.5167);
-  
-  // Variable para guardar el punto tocado manualmente
   LatLng? _ubicacionManualSeleccionada;
 
-
-  // Función que levanta el formulario inferior
   void _mostrarFormularioCreacion() {
     if (_ubicacionManualSeleccionada == null) return;
 
-
-    // VERIFICACIÓN DE SEGURIDAD: ¿Está logueado?
     final usuarioActual = FirebaseAuth.instance.currentUser;
     if (usuarioActual == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -47,10 +35,9 @@ class _MapaScreenState extends State<MapaScreen> {
       return;
     }
 
-
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Evita que el teclado tape todo
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -58,7 +45,6 @@ class _MapaScreenState extends State<MapaScreen> {
         return _FormularioReporteSheet(
           ubicacion: _ubicacionManualSeleccionada!,
           onReporteCreado: () {
-            // Cuando se crea, limpiamos el pin y cerramos el modal
             setState(() {
               _ubicacionManualSeleccionada = null;
             });
@@ -71,7 +57,6 @@ class _MapaScreenState extends State<MapaScreen> {
       },
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +71,6 @@ class _MapaScreenState extends State<MapaScreen> {
         scrolledUnderElevation: 0.5,
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      // BOTÓN FLOTANTE QUE APARECE AL TOCAR EL MAPA
       floatingActionButton: _ubicacionManualSeleccionada != null
           ? FloatingActionButton(
               onPressed: _mostrarFormularioCreacion,
@@ -102,11 +86,9 @@ class _MapaScreenState extends State<MapaScreen> {
         builder: (context, snapshot) {
           final reportes = snapshot.data ?? [];
 
-
           final reportesConUbicacion = reportes
               .where((r) => r.latitud != null && r.longitud != null)
               .toList();
-
 
           final reportesGeo = reportesConUbicacion
               .map((r) => ReporteGeo(
@@ -116,17 +98,13 @@ class _MapaScreenState extends State<MapaScreen> {
                   ))
               .toList();
 
-
-          // Detectar zonas críticas (Mapa de calor)
           final zonasCriticas =
               ZonaCriticaService().detectarZonasCriticas(reportesGeo);
-
 
           return FlutterMap(
             options: MapOptions(
               initialCenter: _centroInicial,
               initialZoom: 13,
-              // Capturamos el toque en el mapa
               onTap: (tapPosition, point) {
                 setState(() {
                   _ubicacionManualSeleccionada = point;
@@ -136,55 +114,87 @@ class _MapaScreenState extends State<MapaScreen> {
             children: [
               // Capa base OpenStreetMap
               TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                urlTemplate:
+                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.ldsw.zona_data',
               ),
-              
+
               // Capa de zonas críticas — debajo de los pins
               CircleLayer(
                 circles: zonasCriticas
                     .map((zona) => _buildCirculoZona(zona))
                     .toList(),
               ),
-              
-              // Capa de marcadores individuales — encima de las zonas
-              MarkerLayer(
-                markers: reportesConUbicacion.map((reporte) {
-                  return Marker(
-                    point: LatLng(reporte.latitud!, reporte.longitud!),
-                    width: 40,
-                    height: 40,
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                DetalleScreen(reporte: reporte),
+
+
+              // Capa de marcadores con Clustering
+              MarkerClusterLayerWidget(
+                options: MarkerClusterLayerOptions(
+                  maxClusterRadius: 60,
+                  size: const Size(44, 44),
+                  markers: reportesConUbicacion.map((reporte) {
+                    return Marker(
+                      point: LatLng(reporte.latitud!, reporte.longitud!),
+                      width: 40,
+                      height: 40,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  DetalleScreen(reporte: reporte),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: colorCategoria(reporte.categoria),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: colorTextoCategoria(reporte.categoria),
+                              width: 2,
+                            ),
                           ),
-                        );
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: colorCategoria(reporte.categoria),
-                          shape: BoxShape.circle,
-                          border: Border.all(
+                          child: Icon(
+                            iconoCategoria(reporte.categoria),
+                            size: 20,
                             color: colorTextoCategoria(reporte.categoria),
-                            width: 2,
                           ),
-                        ),
-                        child: Icon(
-                          _iconoCategoria(reporte.categoria),
-                          size: 20,
-                          color: colorTextoCategoria(reporte.categoria),
                         ),
                       ),
-                    ),
-                  );
-                }).toList(),
+                    );
+                  }).toList(),
+                  builder: (context, markers) {
+                    final color = _colorCluster(markers.length);
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withValues(alpha: 0.4),
+                            blurRadius: 6,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${markers.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
-              
-              // Capa del Pin Manual de Prueba (Naranja)
+
+              // Pin de ubicación manual
               if (_ubicacionManualSeleccionada != null)
                 MarkerLayer(
                   markers: [
@@ -207,41 +217,35 @@ class _MapaScreenState extends State<MapaScreen> {
     );
   }
 
-
   CircleMarker _buildCirculoZona(ZonaCritica zona) {
+    final color = _colorPorNivel(zona.nivelCriticidad);
     return CircleMarker(
       point: LatLng(zona.latitudCentro, zona.longitudCentro),
       radius: zona.radioMetros,
       useRadiusInMeter: true,
-      color: Colors.red.withValues(alpha: 0.3),
-      borderColor: Colors.red,
-      borderStrokeWidth: 2,
+      color: color.withValues(alpha: 0.12),
+      borderColor: color,
+      borderStrokeWidth: 3,
     );
   }
 
-
-  IconData _iconoCategoria(CategoriaReporte categoria) {
-    switch (categoria) {
-      case CategoriaReporte.vial:
-        return Icons.route;
-      case CategoriaReporte.electrico:
-        return Icons.bolt;
-      case CategoriaReporte.agua:
-        return Icons.water_drop;
-      case CategoriaReporte.cloacal:
-        return Icons.plumbing;
-      case CategoriaReporte.espaciosVerdes:
-        return Icons.park;
-      case CategoriaReporte.residuos:
-        return Icons.delete_outline;
-      case CategoriaReporte.seguridadVial:
-        return Icons.warning_amber;
-      case CategoriaReporte.edificiosPublicos:
-        return Icons.business;
+  Color _colorPorNivel(NivelCriticidad nivel) {
+    switch (nivel) {
+      case NivelCriticidad.moderada:
+        return const Color(0xFFE6A817);
+      case NivelCriticidad.alta:
+        return const Color(0xFFE06B1A);
+      case NivelCriticidad.critica:
+        return const Color(0xFFCC2A2A);
     }
   }
-}
 
+  Color _colorCluster(int cantidad) {
+    if (cantidad >= 10) return const Color(0xFFCC2A2A);
+    if (cantidad >= 5) return const Color(0xFFE06B1A);
+    return const Color(0xFFE6A817);
+  }
+}
 
 // =========================================================================
 // WIDGET DEL FORMULARIO INFERIOR (BottomSheet)
@@ -250,25 +254,21 @@ class _FormularioReporteSheet extends StatefulWidget {
   final LatLng ubicacion;
   final VoidCallback onReporteCreado;
 
-
   const _FormularioReporteSheet({
     required this.ubicacion,
     required this.onReporteCreado,
   });
-
 
   @override
   State<_FormularioReporteSheet> createState() =>
       _FormularioReporteSheetState();
 }
 
-
 class _FormularioReporteSheetState extends State<_FormularioReporteSheet> {
   final _tituloController = TextEditingController();
   final _descController = TextEditingController();
-  CategoriaReporte _categoriaSeleccionada = CategoriaReporte.vial;
+  CategoriaReporte _categoriaSeleccionada = CategoriaReporte.bachesYCalles;
   bool _estaGuardando = false;
-
 
   Future<void> _guardarReporte() async {
     if (_tituloController.text.isEmpty || _descController.text.isEmpty) {
@@ -278,33 +278,28 @@ class _FormularioReporteSheetState extends State<_FormularioReporteSheet> {
       return;
     }
 
-
     final usuarioActual = FirebaseAuth.instance.currentUser;
-    if (usuarioActual == null) return; 
-
+    if (usuarioActual == null) return;
 
     setState(() => _estaGuardando = true);
 
-
     final nuevoReporte = Reporte(
-      id: '', 
+      id: '',
       titulo: _tituloController.text.trim(),
       descripcion: _descController.text.trim(),
       categoria: _categoriaSeleccionada,
       fecha: DateTime.now(),
-      autorId: usuarioActual.uid, // ID Real
-      autorNombre: usuarioActual.displayName ?? usuarioActual.email ?? 'Usuario', 
+      autorId: usuarioActual.uid,
+      autorNombre:
+          usuarioActual.displayName ?? usuarioActual.email ?? 'Usuario',
       latitud: widget.ubicacion.latitude,
       longitud: widget.ubicacion.longitude,
     );
 
-
     await ReporteService().crearReporte(nuevoReporte);
-
 
     widget.onReporteCreado();
   }
-
 
   @override
   void dispose() {
@@ -313,11 +308,9 @@ class _FormularioReporteSheetState extends State<_FormularioReporteSheet> {
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
 
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + bottomInset),
@@ -357,7 +350,7 @@ class _FormularioReporteSheetState extends State<_FormularioReporteSheet> {
             items: CategoriaReporte.values.map((cat) {
               return DropdownMenuItem(
                 value: cat,
-                child: Text(cat.name.toUpperCase()),
+                child: Text(labelCategoria(cat)),
               );
             }).toList(),
             onChanged: (val) {
@@ -383,8 +376,6 @@ class _FormularioReporteSheetState extends State<_FormularioReporteSheet> {
     );
   }
 }
-
-
 
 
 

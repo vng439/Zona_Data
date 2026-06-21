@@ -5,10 +5,10 @@ import '../models/zona_critica.dart';
 
 class ZonaCriticaService {
   // Radio máximo en metros para considerar dos reportes como parte del mismo grupo
-  static const double _radioAgrupacionMetros = 100.0;
+  static const double _radioAgrupacionMetros = 150.0;
 
   // Umbral mínimo de reportes para declarar zona crítica
-  static const int _umbralMinimo = 3;
+  static const int _umbralMinimo = 5;
 
   /// Detecta zonas críticas a partir de una lista de reportes geolocalizados.
   ///
