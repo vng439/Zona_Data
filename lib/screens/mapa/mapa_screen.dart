@@ -36,52 +36,73 @@ class _MapaScreenState extends State<MapaScreen> {
         elevation: 0,
         scrolledUnderElevation: 0.5,
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: _ubicacionManualSeleccionada != null
-    ? FloatingActionButton(
-        onPressed: () async {
-          final usuarioActual = FirebaseAuth.instance.currentUser;
-          if (usuarioActual == null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content:
-                    Text('Debes iniciar sesión para poder crear un reporte.'),
-                backgroundColor: Colors.redAccent,
+    ? Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FilledButton.tonalIcon(
+            onPressed: () {
+              setState(() {
+                _ubicacionManualSeleccionada = null;
+              });
+            },
+            icon: const Icon(Icons.close, size: 18),
+            label: const Text('Quitar pin'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 10,
               ),
-            );
-            return;
-          }
-
-          await Navigator.push(
-            context,
-            PageRouteBuilder(
-              opaque: true,
-              pageBuilder: (context, animation, secondaryAnimation) =>
-                  NuevoReporteScreen(
-                ubicacionInicial: _ubicacionManualSeleccionada,
-              ),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                return FadeTransition(
-                  opacity: animation,
-                  child: child,
-                );
-              },
             ),
-          );
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton(
+            onPressed: () async {
+              final usuarioActual = FirebaseAuth.instance.currentUser;
+              if (usuarioActual == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                        'Debes iniciar sesión para poder crear un reporte.'),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+                return;
+              }
 
-          if (mounted) {
-            setState(() {
-              _ubicacionManualSeleccionada = null;
-            });
-          }
-        },
-        backgroundColor: Colors.deepOrange,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add_location_alt_outlined, size: 32),
+              await Navigator.push(
+                context,
+                PageRouteBuilder(
+                  opaque: true,
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      NuevoReporteScreen(
+                    ubicacionInicial: _ubicacionManualSeleccionada,
+                  ),
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) {
+                    return FadeTransition(opacity: animation, child: child);
+                  },
+                ),
+              );
+
+              if (mounted) {
+                setState(() {
+                  _ubicacionManualSeleccionada = null;
+                });
+              }
+            },
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            elevation: 4,
+            shape: const CircleBorder(),
+            child: const Icon(Icons.add_location_alt_outlined, size: 32),
+          ),
+        ],
       )
-      : null,
+    : null,
+
       body: StreamBuilder<List<Reporte>>(
         stream: ReporteService().obtenerReportes(),
         builder: (context, snapshot) {
@@ -203,9 +224,9 @@ class _MapaScreenState extends State<MapaScreen> {
                       point: _ubicacionManualSeleccionada!,
                       width: 50,
                       height: 50,
-                      child: const Icon(
+                      child: Icon(
                         Icons.location_on,
-                        color: Colors.deepOrange,
+                        color: Theme.of(context).colorScheme.primary,
                         size: 45,
                       ),
                     ),
