@@ -1,8 +1,9 @@
-// lib/screens/detalle/detalle_screen.dart
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../models/reports.dart';
+import '../../services/ubicacion_service.dart';
 import '../../utils/reporte_helpers.dart';
 
 class DetalleScreen extends StatelessWidget {
@@ -30,12 +31,17 @@ class DetalleScreen extends StatelessWidget {
             _buildBadges(),
             const SizedBox(height: 16),
             _buildTitulo(context),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
+            _buildDireccion(context),
+            const SizedBox(height: 12),
             _buildDescripcion(context),
-            // Imagen completa, solo si existe
             if (reporte.imagenUrl != null) ...[
               const SizedBox(height: 16),
               _buildImagenCompleta(context),
+            ],
+            if (reporte.latitud != null && reporte.longitud != null) ...[
+              const SizedBox(height: 16),
+              _buildMapaMiniatura(context),
             ],
             const SizedBox(height: 16),
             _buildDivider(context),
@@ -46,6 +52,112 @@ class DetalleScreen extends StatelessWidget {
             const SizedBox(height: 32),
             _buildBotonCierre(context),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDireccion(BuildContext context) {
+    if (reporte.latitud == null || reporte.longitud == null) {
+      return const SizedBox.shrink();
+    }
+
+    final cs = Theme.of(context).colorScheme;
+
+    return FutureBuilder<String?>(
+      future: UbicacionService().obtenerDireccion(
+        reporte.latitud!,
+        reporte.longitud!,
+      ),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Row(
+            children: [
+              SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.5,
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Buscando dirección...',
+                style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+              ),
+            ],
+          );
+        }
+
+        final direccion = snapshot.data;
+        if (direccion == null) return const SizedBox.shrink();
+
+        return Row(
+          children: [
+            Icon(Icons.location_on_outlined,
+                size: 16, color: cs.onSurfaceVariant),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                direccion,
+                style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildMapaMiniatura(BuildContext context) {
+    final punto = LatLng(reporte.latitud!, reporte.longitud!);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        height: 150,
+        child: IgnorePointer(
+          child: FlutterMap(
+            options: MapOptions(
+              initialCenter: punto,
+              initialZoom: 16,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.none,
+              ),
+            ),
+            children: [
+              TileLayer(
+                urlTemplate:
+                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.ldsw.zona_data',
+              ),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: punto,
+                    width: 36,
+                    height: 36,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: colorCategoria(reporte.categoria),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: colorTextoCategoria(reporte.categoria),
+                          width: 2,
+                        ),
+                      ),
+                      child: Icon(
+                        iconoCategoria(reporte.categoria),
+                        size: 18,
+                        color: colorTextoCategoria(reporte.categoria),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -164,13 +276,6 @@ class DetalleScreen extends StatelessWidget {
 
     return Row(
       children: [
-        Icon(Icons.person_outline, size: 16, color: cs.onSurfaceVariant),
-        const SizedBox(width: 4),
-        Text(
-          reporte.autorNombre,
-          style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
-        ),
-        const SizedBox(width: 16),
         Icon(Icons.access_time, size: 16, color: cs.onSurfaceVariant),
         const SizedBox(width: 4),
         Text(
@@ -178,6 +283,35 @@ class DetalleScreen extends StatelessWidget {
           style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
         ),
       ],
+    );
+  }
+
+  Widget _buildApoyos(BuildContext context) {
+    if (reporte.apoyos == 0) return const SizedBox.shrink();
+
+    final cs = Theme.of(context).colorScheme;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: cs.primaryContainer,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.people_outline, size: 18, color: cs.onPrimaryContainer),
+          const SizedBox(width: 8),
+          Text(
+            '${reporte.apoyos} ${reporte.apoyos == 1 ? 'persona se sumó' : 'personas se sumaron'} a este reporte',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: cs.onPrimaryContainer,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -281,34 +415,6 @@ class DetalleScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildApoyos(BuildContext context) {
-    if (reporte.apoyos == 0) return const SizedBox.shrink();
-
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.only(top: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: cs.primaryContainer,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.people_outline, size: 18, color: cs.onPrimaryContainer),
-          const SizedBox(width: 6),
-          Text(
-            '${reporte.apoyos} ${reporte.apoyos == 1 ? 'persona se sumó' : 'personas se sumaron'} a este reporte',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: cs.onPrimaryContainer,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _mostrarDialogoCierre(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
@@ -343,4 +449,3 @@ class DetalleScreen extends StatelessWidget {
     );
   }
 }
-

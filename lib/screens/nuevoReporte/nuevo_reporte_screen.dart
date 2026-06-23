@@ -1,4 +1,3 @@
-// lib/screens/nuevo_reporte/nuevo_reporte_screen.dart
 import 'dart:io';
 import 'package:latlong2/latlong.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,10 +7,14 @@ import '../../models/reports.dart';
 import '../../services/reporte_service.dart';
 import '../../services/ubicacion_service.dart';
 import '../../utils/reporte_helpers.dart';
+import '../../utils/validadores.dart';
 import '../mapa/selector_ubicacion_screen.dart';
+import '../detalle/detalle_screen.dart' as detalle;
 
 class NuevoReporteScreen extends StatefulWidget {
-  const NuevoReporteScreen({super.key});
+  final LatLng? ubicacionInicial;
+
+  const NuevoReporteScreen({super.key, this.ubicacionInicial});
 
   @override
   State<NuevoReporteScreen> createState() => _NuevoReporteScreenState();
@@ -30,12 +33,46 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
   bool _obteniendoUbicacion = false;
   File? _imagenSeleccionada;
   bool _ubicacionEsDelMapa = false;
+  bool _verificandoDuplicados = false;
+
+  CategoriaReporte? _ultimaCategoriaVerificada;
+  double? _ultimaLatVerificada;
+  double? _ultimaLonVerificada;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.ubicacionInicial != null) {
+      _latitud = widget.ubicacionInicial!.latitude;
+      _longitud = widget.ubicacionInicial!.longitude;
+      _ubicacionEsDelMapa = true;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _intentarVerificarDuplicados();
+    });
+  }
 
   @override
   void dispose() {
     _tituloController.dispose();
     _descripcionController.dispose();
     super.dispose();
+  }
+
+  bool get _camposBasicosCompletos =>
+      _categoriaSeleccionada != null && _latitud != null && _longitud != null;
+
+  bool get _formularioCompleto {
+    if (_categoriaSeleccionada == null) return false;
+    if (_latitud == null || _longitud == null) return false;
+
+    final titulo = _tituloController.text.trim();
+    if (titulo.length < 10 || !tieneSentido(titulo)) return false;
+
+    final descripcion = _descripcionController.text.trim();
+    if (descripcion.length < 20 || !tieneSentido(descripcion)) return false;
+
+    return true;
   }
 
   @override
@@ -52,6 +89,7 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
       ),
       body: Form(
         key: _formKey,
+        onChanged: () => setState(() {}),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -72,6 +110,10 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
               _buildLabel(context, 'Ubicación'),
               const SizedBox(height: 8),
               _buildSelectorUbicacion(context),
+              if (_verificandoDuplicados) ...[
+                const SizedBox(height: 10),
+                _buildLoaderDuplicados(context),
+              ],
               const SizedBox(height: 24),
               _buildLabel(context, 'Foto'),
               const SizedBox(height: 8),
@@ -82,6 +124,27 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLoaderDuplicados(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        SizedBox(
+          width: 14,
+          height: 14,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: cs.primary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          'Verificando reportes cercanos...',
+          style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+        ),
+      ],
     );
   }
 
@@ -107,7 +170,10 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
       children: CategoriaReporte.values.map((categoria) {
         final seleccionada = _categoriaSeleccionada == categoria;
         return GestureDetector(
-          onTap: () => setState(() => _categoriaSeleccionada = categoria),
+          onTap: () {
+            setState(() => _categoriaSeleccionada = categoria);
+            _intentarVerificarDuplicados();
+          },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -173,6 +239,9 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
         if (valor.trim().length < 10) {
           return 'El título debe tener al menos 10 caracteres';
         }
+        if (!tieneSentido(valor)) {
+          return 'Escribí un título que describa el problema';
+        }
         return null;
       },
     );
@@ -213,129 +282,129 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
         if (valor.trim().length < 20) {
           return 'La descripción debe tener al menos 20 caracteres';
         }
+        if (!tieneSentido(valor)) {
+          return 'Describí el problema con palabras reales';
+        }
         return null;
       },
     );
   }
 
   Widget _buildSelectorUbicacion(BuildContext context) {
-  final cs = Theme.of(context).colorScheme;
-  final tieneUbicacion = _latitud != null;
+    final cs = Theme.of(context).colorScheme;
+    final tieneUbicacion = _latitud != null;
 
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      // Botón GPS
-      GestureDetector(
-        onTap: _obteniendoUbicacion ? null : _obtenerUbicacion,
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: (tieneUbicacion && !_ubicacionEsDelMapa)
-                  ? cs.primary
-                  : cs.outlineVariant,
-            ),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                (tieneUbicacion && !_ubicacionEsDelMapa)
-                    ? Icons.my_location
-                    : Icons.my_location_outlined,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: _obteniendoUbicacion ? null : _obtenerUbicacion,
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              border: Border.all(
                 color: (tieneUbicacion && !_ubicacionEsDelMapa)
                     ? cs.primary
-                    : cs.onSurfaceVariant,
-                size: 20,
+                    : cs.outlineVariant,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _obteniendoUbicacion
-                    ? Text(
-                        'Obteniendo ubicación...',
-                        style: TextStyle(
-                            color: cs.onSurfaceVariant, fontSize: 14),
-                      )
-                    : Text(
-                        (tieneUbicacion && !_ubicacionEsDelMapa)
-                            ? 'Ubicación GPS obtenida'
-                            : 'Usar mi ubicación actual (GPS)',
-                        style: TextStyle(
-                          color: (tieneUbicacion && !_ubicacionEsDelMapa)
-                              ? cs.primary
-                              : cs.onSurfaceVariant,
-                          fontSize: 14,
-                        ),
-                      ),
-              ),
-              if (_obteniendoUbicacion)
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: cs.primary,
-                  ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  (tieneUbicacion && !_ubicacionEsDelMapa)
+                      ? Icons.my_location
+                      : Icons.my_location_outlined,
+                  color: (tieneUbicacion && !_ubicacionEsDelMapa)
+                      ? cs.primary
+                      : cs.onSurfaceVariant,
+                  size: 20,
                 ),
-            ],
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _obteniendoUbicacion
+                      ? Text(
+                          'Obteniendo ubicación...',
+                          style: TextStyle(
+                              color: cs.onSurfaceVariant, fontSize: 14),
+                        )
+                      : Text(
+                          (tieneUbicacion && !_ubicacionEsDelMapa)
+                              ? 'Ubicación GPS obtenida'
+                              : 'Usar mi ubicación actual (GPS)',
+                          style: TextStyle(
+                            color: (tieneUbicacion && !_ubicacionEsDelMapa)
+                                ? cs.primary
+                                : cs.onSurfaceVariant,
+                            fontSize: 14,
+                          ),
+                        ),
+                ),
+                if (_obteniendoUbicacion)
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: cs.primary,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
-      ),
 
-      const SizedBox(height: 10),
+        const SizedBox(height: 10),
 
-      // Botón elegir en el mapa
-      GestureDetector(
-        onTap: _abrirSelectorMapa,
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: (tieneUbicacion && _ubicacionEsDelMapa)
-                  ? cs.primary
-                  : cs.outlineVariant,
-            ),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                (tieneUbicacion && _ubicacionEsDelMapa)
-                    ? Icons.map
-                    : Icons.map_outlined,
+        GestureDetector(
+          onTap: _abrirSelectorMapa,
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              border: Border.all(
                 color: (tieneUbicacion && _ubicacionEsDelMapa)
                     ? cs.primary
-                    : cs.onSurfaceVariant,
-                size: 20,
+                    : cs.outlineVariant,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(
                   (tieneUbicacion && _ubicacionEsDelMapa)
-                      ? 'Ubicación elegida en el mapa'
-                      : 'Elegir ubicación en el mapa',
-                  style: TextStyle(
-                    color: (tieneUbicacion && _ubicacionEsDelMapa)
-                        ? cs.primary
-                        : cs.onSurfaceVariant,
-                    fontSize: 14,
+                      ? Icons.map
+                      : Icons.map_outlined,
+                  color: (tieneUbicacion && _ubicacionEsDelMapa)
+                      ? cs.primary
+                      : cs.onSurfaceVariant,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    (tieneUbicacion && _ubicacionEsDelMapa)
+                        ? 'Ubicación elegida en el mapa'
+                        : 'Elegir ubicación en el mapa',
+                    style: TextStyle(
+                      color: (tieneUbicacion && _ubicacionEsDelMapa)
+                          ? cs.primary
+                          : cs.onSurfaceVariant,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
-              ),
-              Icon(
-                Icons.chevron_right,
-                color: cs.onSurfaceVariant,
-                size: 20,
-              ),
-            ],
+                Icon(
+                  Icons.chevron_right,
+                  color: cs.onSurfaceVariant,
+                  size: 20,
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    ],
-  );
-}
-
+      ],
+    );
+  }
 
   Widget _buildSelectorImagen(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -406,14 +475,17 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
 
   Widget _buildBotonEnviar(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final habilitado = _formularioCompleto && !_enviando;
 
     return SizedBox(
       width: double.infinity,
       child: FilledButton(
-        onPressed: _enviando ? null : _enviarFormulario,
+        onPressed: habilitado ? _enviarFormulario : null,
         style: FilledButton.styleFrom(
           backgroundColor: cs.primary,
           foregroundColor: cs.onPrimary,
+          disabledBackgroundColor: cs.surfaceContainerHighest,
+          disabledForegroundColor: cs.onSurfaceVariant,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
@@ -435,7 +507,6 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
       ),
     );
   }
-  
 
   Future<void> _seleccionarImagen(ImageSource fuente) async {
     final XFile? archivo = await _picker.pickImage(
@@ -489,66 +560,63 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
   }
 
   Future<void> _obtenerUbicacion() async {
-  setState(() => _obteniendoUbicacion = true);
+    setState(() => _obteniendoUbicacion = true);
 
-  final posicion = await UbicacionService().obtenerUbicacion();
+    final posicion = await UbicacionService().obtenerUbicacion();
 
-  if (!mounted) return;
+    if (!mounted) return;
 
-  if (posicion != null) {
-    setState(() {
-      _latitud = posicion.latitude;
-      _longitud = posicion.longitude;
-      _ubicacionEsDelMapa = false;
-    });
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('No se pudo obtener la ubicación')),
-    );
+    if (posicion != null) {
+      setState(() {
+        _latitud = posicion.latitude;
+        _longitud = posicion.longitude;
+        _ubicacionEsDelMapa = false;
+      });
+      _intentarVerificarDuplicados();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo obtener la ubicación')),
+      );
+    }
+
+    setState(() => _obteniendoUbicacion = false);
   }
-
-  setState(() => _obteniendoUbicacion = false);
-}
 
   Future<void> _abrirSelectorMapa() async {
-  final LatLng? resultado = await Navigator.push<LatLng>(
-    context,
-    MaterialPageRoute(
-      builder: (context) => const SelectorUbicacionScreen(),
-    ),
-  );
-
-  if (resultado == null) return;
-
-  setState(() {
-    _latitud = resultado.latitude;
-    _longitud = resultado.longitude;
-    _ubicacionEsDelMapa = true;
-  });
-}
-
-  Future<void> _enviarFormulario() async {
-  if (_categoriaSeleccionada == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Seleccioná una categoría')),
+    final LatLng? resultado = await Navigator.push<LatLng>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SelectorUbicacionScreen(),
+      ),
     );
-    return;
+
+    if (resultado == null) return;
+
+    setState(() {
+      _latitud = resultado.latitude;
+      _longitud = resultado.longitude;
+      _ubicacionEsDelMapa = true;
+    });
+    _intentarVerificarDuplicados();
   }
 
-  if (!_formKey.currentState!.validate()) return;
+  Future<void> _intentarVerificarDuplicados() async {
+    if (!_camposBasicosCompletos) return;
 
-  final usuario = FirebaseAuth.instance.currentUser;
-  if (usuario == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Necesitás iniciar sesión para publicar')),
-    );
-    return;
-  }
+    final mismaCategoria =
+        _ultimaCategoriaVerificada == _categoriaSeleccionada;
+    final mismaLat = _ultimaLatVerificada == _latitud;
+    final mismaLon = _ultimaLonVerificada == _longitud;
+    if (mismaCategoria && mismaLat && mismaLon) return;
 
-  // Solo verificar duplicados si hay ubicación
-  if (_latitud != null && _longitud != null) {
-    setState(() => _enviando = true);
+    final usuario = FirebaseAuth.instance.currentUser;
+    if (usuario == null) return;
+
+    _ultimaCategoriaVerificada = _categoriaSeleccionada;
+    _ultimaLatVerificada = _latitud;
+    _ultimaLonVerificada = _longitud;
+
+    setState(() => _verificandoDuplicados = true);
 
     final cercanos = await ReporteService().buscarReportesCercanos(
       categoria: _categoriaSeleccionada!,
@@ -557,180 +625,299 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
     );
 
     if (!mounted) return;
-    setState(() => _enviando = false);
+    setState(() => _verificandoDuplicados = false);
 
-    if (cercanos.isNotEmpty) {
-      final continuar = await _mostrarDialogoDuplicados(cercanos, usuario.uid);
-      if (!mounted) return;
-      if (!continuar) return;
+    final propios = cercanos.where((r) => r.autorId == usuario.uid).toList();
+    final deOtros = cercanos.where((r) => r.autorId != usuario.uid).toList();
+
+    if (propios.isNotEmpty) {
+      final navego = await _mostrarDialogoReportesPropios(propios);
+      if (!mounted || navego) return;
+    }
+
+    if (deOtros.isNotEmpty) {
+      await _mostrarDialogoDuplicados(deOtros, usuario.uid);
     }
   }
 
-  setState(() => _enviando = true);
+  Future<void> _enviarFormulario() async {
+    if (_categoriaSeleccionada == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Seleccioná una categoría')),
+      );
+      return;
+    }
 
-  try {
-    final reporte = Reporte(
-      id: '',
-      titulo: _tituloController.text.trim(),
-      descripcion: _descripcionController.text.trim(),
-      categoria: _categoriaSeleccionada!,
-      fecha: DateTime.now(),
-      autorId: usuario.uid,
-      autorNombre: usuario.displayName ?? 'Usuario',
-      latitud: _latitud,
-      longitud: _longitud,
-    );
+    if (!_formKey.currentState!.validate()) return;
 
-    await ReporteService().crearReporte(
-      reporte,
-      imagenFile: _imagenSeleccionada,
-    );
+    final usuario = FirebaseAuth.instance.currentUser;
+    if (usuario == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Necesitás iniciar sesión para publicar')),
+      );
+      return;
+    }
 
-    if (!mounted) return;
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Reporte publicado correctamente'),
-        duration: Duration(seconds: 2),
+    setState(() => _enviando = true);
+
+    try {
+      final reporte = Reporte(
+        id: '',
+        titulo: _tituloController.text.trim(),
+        descripcion: _descripcionController.text.trim(),
+        categoria: _categoriaSeleccionada!,
+        fecha: DateTime.now(),
+        autorId: usuario.uid,
+        autorNombre: usuario.displayName ?? 'Usuario',
+        latitud: _latitud,
+        longitud: _longitud,
+      );
+
+      await ReporteService().crearReporte(
+        reporte,
+        imagenFile: _imagenSeleccionada,
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Reporte publicado correctamente'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Error al publicar. Intentá de nuevo')),
+      );
+    } finally {
+      if (mounted) setState(() => _enviando = false);
+    }
+  }
+
+  Future<bool> _mostrarDialogoReportesPropios(List<Reporte> propios) async {
+    final cs = Theme.of(context).colorScheme;
+
+    final reporteElegido = await showDialog<Reporte>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Ya reportaste esto?'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Encontramos reportes que ya creaste cerca de esta zona, '
+                'de la misma categoría.',
+                style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+              ),
+              const SizedBox(height: 12),
+              ...propios.map((reporte) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: cs.outlineVariant),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        reporte.titulo,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.pop(context, reporte);
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Sí, mi reporte está aquí',
+                            style: TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, null),
+            style: TextButton.styleFrom(foregroundColor: cs.primary),
+            child: const Text('No, quiero reportar esto'),
+          ),
+        ],
       ),
     );
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Error al publicar. Intentá de nuevo')),
-    );
-  } finally {
-    if (mounted) setState(() => _enviando = false);
+
+    if (reporteElegido != null) {
+      if (!mounted) return true;
+      Navigator.pop(context);
+      Navigator.push(
+        context,
+        PageRouteBuilder(
+          opaque: true,
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              detalle.DetalleScreen(reporte: reporteElegido),
+          transitionsBuilder:
+              (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        ),
+      );
+      return true;
+    }
+
+    return false;
   }
-}
 
-/// Muestra el diálogo de duplicados y devuelve true si el usuario
-/// decide crear el reporte de todas formas.
-Future<bool> _mostrarDialogoDuplicados(
-  List<Reporte> cercanos,
-  String usuarioId,
-) async {
-  final cs = Theme.of(context).colorScheme;
+  Future<void> _mostrarDialogoDuplicados(
+    List<Reporte> cercanos,
+    String usuarioId,
+  ) async {
+    final cs = Theme.of(context).colorScheme;
 
-  return await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Reportes cercanos encontrados'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Hay reportes de la misma categoría a menos de 50 metros. '
-                  '¿Querés sumarte a alguno o tu caso es diferente?',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: cs.onSurfaceVariant,
-                  ),
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reportes cercanos encontrados'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hay reportes de la misma categoría a menos de 50 metros. '
+                'Si es el mismo problema, sumate. Si tu caso es diferente, '
+                'podés seguir completando el formulario.',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: cs.onSurfaceVariant,
                 ),
-                const SizedBox(height: 12),
-                ...cercanos.map((reporte) {
-                  final yaApoyo =
-                      reporte.apoyosUsuarios.contains(usuarioId);
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: cs.surfaceContainerLowest,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: cs.outlineVariant),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+              ),
+              const SizedBox(height: 12),
+              ...cercanos.map((reporte) {
+                final yaApoyo = reporte.apoyosUsuarios.contains(usuarioId);
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: cs.outlineVariant),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        reporte.titulo,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        reporte.autorNombre,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                      if (reporte.apoyos > 0) ...[
+                        const SizedBox(height: 4),
                         Text(
-                          reporte.titulo,
-                          style: const TextStyle(
-                            fontSize: 13,
+                          '${reporte.apoyos} ${reporte.apoyos == 1 ? 'persona se sumó' : 'personas se sumaron'}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: cs.primary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          reporte.autorNombre,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: cs.onSurfaceVariant,
-                          ),
-                        ),
-                        if (reporte.apoyos > 0) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            '${reporte.apoyos} ${reporte.apoyos == 1 ? 'persona se sumó' : 'personas se sumaron'}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: cs.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton(
-                            onPressed: yaApoyo
-                                ? null
-                                : () async {
-                                    await ReporteService().sumarseAReporte(
-                                      reporteId: reporte.id,
-                                      usuarioId: usuarioId,
-                                    );
-                                    if (context.mounted) {
-                                      Navigator.pop(context, false);
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                              'Te sumaste al reporte correctamente'),
-                                          duration: Duration(seconds: 2),
-                                        ),
-                                      );
-                                    }
-                                  },
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: Text(
-                              yaApoyo ? 'Ya te sumaste' : 'Sumarme a este reporte',
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                          ),
-                        ),
                       ],
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(
-                'Cancelar',
-                style: TextStyle(color: cs.onSurfaceVariant),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: TextButton.styleFrom(foregroundColor: cs.primary),
-              child: const Text('Mi caso es diferente'),
-            ),
-          ],
-        ),
-      ) ??
-      false;
-}
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: yaApoyo
+                              ? null
+                              : () async {
+                                  final estadoPantalla = this;
 
+                                  await ReporteService().sumarseAReporte(
+                                    reporteId: reporte.id,
+                                    usuarioId: usuarioId,
+                                  );
+
+                                  if (!context.mounted) return;
+                                  Navigator.pop(context);
+
+                                  if (!estadoPantalla.mounted) return;
+                                  Navigator.pop(estadoPantalla.context);
+                                  ScaffoldMessenger.of(estadoPantalla.context)
+                                      .showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                          'Te sumaste al reporte de ${reporte.autorNombre}'),
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                },
+                          style: FilledButton.styleFrom(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            yaApoyo
+                                ? 'Ya te sumaste'
+                                : 'Sumarme a este reporte',
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(foregroundColor: cs.primary),
+            child: const Text('Mi caso es diferente'),
+          ),
+        ],
+      ),
+    );
+  }
 }

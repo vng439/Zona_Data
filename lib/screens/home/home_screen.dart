@@ -4,10 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/reporte_service.dart';
 import '../../models/reports.dart';
 import '../../widgets/reporte_card.dart';
-import '../detalle/detalle_screen.dart';
 import '../nuevoReporte/nuevo_reporte_screen.dart';
 import '../auth/login_screen.dart';
 import '../../utils/reporte_helpers.dart';
+import '../detalle/detalle_screen.dart';
 
 enum FiltroFecha {
   todas,
@@ -191,9 +191,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) =>
+                          PageRouteBuilder(
+                            opaque: true,
+                            pageBuilder: (context, animation, secondaryAnimation) =>
                                 DetalleScreen(reporte: reporte),
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              return FadeTransition(
+                                opacity: animation,
+                                child: child,
+                              );
+                            },
                           ),
                         );
                       },

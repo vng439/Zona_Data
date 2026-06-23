@@ -1,6 +1,7 @@
 // lib/services/ubicacion_service.dart
 
 import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 class UbicacionService {
   // Solicita permiso y devuelve la ubicación actual
@@ -27,5 +28,29 @@ class UbicacionService {
         accuracy: LocationAccuracy.high,
       ),
     );
+
+
+    
   }
+
+  /// Convierte coordenadas en una dirección legible (calle aproximada).
+/// Devuelve null si no se pudo resolver.
+Future<String?> obtenerDireccion(double latitud, double longitud) async {
+  try {
+    final ubicaciones = await placemarkFromCoordinates(latitud, longitud);
+    if (ubicaciones.isEmpty) return null;
+
+    final lugar = ubicaciones.first;
+    final partes = [
+      if (lugar.street != null && lugar.street!.isNotEmpty) lugar.street,
+      if (lugar.subLocality != null && lugar.subLocality!.isNotEmpty)
+        lugar.subLocality,
+    ];
+
+    if (partes.isEmpty) return null;
+    return partes.join(', ');
+  } catch (e) {
+    return null;
+  }
+}
 }

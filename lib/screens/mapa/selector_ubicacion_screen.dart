@@ -36,19 +36,31 @@ class _SelectorUbicacionScreenState extends State<SelectorUbicacionScreen> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: _ubicacionSeleccionada != null
-          ? FloatingActionButton.extended(
+        ? Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
               onPressed: () {
                 Navigator.pop(context, _ubicacionSeleccionada);
               },
-              backgroundColor: cs.primary,
-              foregroundColor: cs.onPrimary,
               icon: const Icon(Icons.check),
               label: const Text(
                 'Confirmar ubicación',
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
-            )
-          : null,
+              style: FilledButton.styleFrom(
+                backgroundColor: cs.primary,
+                foregroundColor: cs.onPrimary,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
+        )
+      : null,
       body: Stack(
         children: [
           StreamBuilder<List<Reporte>>(

@@ -9,6 +9,7 @@ import '../../models/zona_critica.dart';
 import '../../utils/reporte_helpers.dart';
 import '../detalle/detalle_screen.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
+import '../nuevoReporte/nuevo_reporte_screen.dart';
 
 class MapaScreen extends StatefulWidget {
   const MapaScreen({super.key});
@@ -21,42 +22,7 @@ class _MapaScreenState extends State<MapaScreen> {
   static const LatLng _centroInicial = LatLng(-46.4333, -67.5167);
   LatLng? _ubicacionManualSeleccionada;
 
-  void _mostrarFormularioCreacion() {
-    if (_ubicacionManualSeleccionada == null) return;
-
-    final usuarioActual = FirebaseAuth.instance.currentUser;
-    if (usuarioActual == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debes iniciar sesión para poder crear un reporte.'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      return;
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return _FormularioReporteSheet(
-          ubicacion: _ubicacionManualSeleccionada!,
-          onReporteCreado: () {
-            setState(() {
-              _ubicacionManualSeleccionada = null;
-            });
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('¡Reporte creado con éxito!')),
-            );
-          },
-        );
-      },
-    );
-  }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -72,15 +38,50 @@ class _MapaScreenState extends State<MapaScreen> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: _ubicacionManualSeleccionada != null
-          ? FloatingActionButton(
-              onPressed: _mostrarFormularioCreacion,
-              backgroundColor: Colors.deepOrange,
-              foregroundColor: Colors.white,
-              elevation: 4,
-              shape: const CircleBorder(),
-              child: const Icon(Icons.add_location_alt_outlined, size: 32),
-            )
-          : null,
+    ? FloatingActionButton(
+        onPressed: () async {
+          final usuarioActual = FirebaseAuth.instance.currentUser;
+          if (usuarioActual == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content:
+                    Text('Debes iniciar sesión para poder crear un reporte.'),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+            return;
+          }
+
+          await Navigator.push(
+            context,
+            PageRouteBuilder(
+              opaque: true,
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  NuevoReporteScreen(
+                ubicacionInicial: _ubicacionManualSeleccionada,
+              ),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+              },
+            ),
+          );
+
+          if (mounted) {
+            setState(() {
+              _ubicacionManualSeleccionada = null;
+            });
+          }
+        },
+        backgroundColor: Colors.deepOrange,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add_location_alt_outlined, size: 32),
+      )
+      : null,
       body: StreamBuilder<List<Reporte>>(
         stream: ReporteService().obtenerReportes(),
         builder: (context, snapshot) {
@@ -112,7 +113,7 @@ class _MapaScreenState extends State<MapaScreen> {
               },
             ),
             children: [
-              // Capa base OpenStreetMap
+              
               TileLayer(
                 urlTemplate:
                     'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
