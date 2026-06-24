@@ -354,7 +354,8 @@ class DetalleScreen extends StatelessWidget {
       );
     }
 
-    if (reporte.estado == EstadoReporte.pendienteDeCierre) {
+    if (reporte.estado == EstadoReporte.activo &&
+      reporte.cierreSugeridoUsuarios.isNotEmpty) {
       return Container(
         margin: const EdgeInsets.only(top: 20),
         padding: const EdgeInsets.all(14),
@@ -368,7 +369,7 @@ class DetalleScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Solicitud de cierre enviada',
+              'Cierre sugerido por la comunidad',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
@@ -377,8 +378,8 @@ class DetalleScreen extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Un vecino indicó que este problema fue resuelto. '
-              'Esperando confirmación del administrador.',
+              '${reporte.cierreSugeridoUsuarios.length} vecino(s) indicaron que este '
+              'problema fue resuelto.',
               style: TextStyle(
                 fontSize: 14,
                 color: cs.onTertiaryContainer,

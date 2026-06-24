@@ -102,10 +102,10 @@ String labelEstado(EstadoReporte estado) {
   switch (estado) {
     case EstadoReporte.activo:
       return 'Activo';
-    case EstadoReporte.pendienteDeCierre:
-      return 'Pendiente de cierre';
     case EstadoReporte.resuelto:
       return 'Resuelto';
+    case EstadoReporte.historico:
+      return 'Histórico';
   }
 }
 
@@ -114,10 +114,10 @@ Color colorEstado(EstadoReporte estado) {
   switch (estado) {
     case EstadoReporte.activo:
       return const Color(0xFFFCEBEB);
-    case EstadoReporte.pendienteDeCierre:
-      return const Color(0xFFFAEEDA);
     case EstadoReporte.resuelto:
       return const Color(0xFFE1F5EE);
+    case EstadoReporte.historico:
+      return const Color(0xFFEDEDED);
   }
 }
 
@@ -126,10 +126,10 @@ Color colorTextoEstado(EstadoReporte estado) {
   switch (estado) {
     case EstadoReporte.activo:
       return const Color(0xFFA32D2D);
-    case EstadoReporte.pendienteDeCierre:
-      return const Color(0xFF854F0B);
     case EstadoReporte.resuelto:
       return const Color(0xFF0F6E56);
+    case EstadoReporte.historico:
+      return const Color(0xFF6B6B6B);
   }
 }
 

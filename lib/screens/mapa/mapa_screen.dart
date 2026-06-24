@@ -316,6 +316,7 @@ class _FormularioReporteSheetState extends State<_FormularioReporteSheet> {
           usuarioActual.displayName ?? usuarioActual.email ?? 'Usuario',
       latitud: widget.ubicacion.latitude,
       longitud: widget.ubicacion.longitude,
+      ultimaActividad: DateTime.now(),
     );
 
     await ReporteService().crearReporte(nuevoReporte);

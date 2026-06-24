@@ -12,8 +12,13 @@ enum CategoriaReporte {
 
 enum EstadoReporte {
   activo,
-  pendienteDeCierre,
   resuelto,
+  historico,
+}
+
+enum OrigenResolucion {
+  comunidad,
+  autoridad,
 }
 
 class Reporte {
@@ -32,6 +37,10 @@ class Reporte {
   final String? thumbnailUrl;
   final int apoyos;
   final List<String> apoyosUsuarios;
+  final OrigenResolucion? origenResolucion;
+  final List<String> cierreSugeridoUsuarios;
+  final DateTime? cierreSugeridoFecha;
+  final DateTime ultimaActividad;
 
   const Reporte({
     required this.id,
@@ -49,6 +58,10 @@ class Reporte {
     this.thumbnailUrl,
     this.apoyos = 0,
     this.apoyosUsuarios = const [],
+    this.origenResolucion,
+    this.cierreSugeridoUsuarios = const [],
+    this.cierreSugeridoFecha,
+    required this.ultimaActividad,
   });
 
   Map<String, dynamic> toMap() {
@@ -67,6 +80,10 @@ class Reporte {
       'thumbnailUrl': thumbnailUrl,
       'apoyos': apoyos,
       'apoyosUsuarios': apoyosUsuarios,
+      'origenResolucion': origenResolucion?.name,
+      'cierreSugeridoUsuarios': cierreSugeridoUsuarios,
+      'cierreSugeridoFecha': cierreSugeridoFecha,
+      'ultimaActividad': ultimaActividad,
     };
   }
 
@@ -97,6 +114,20 @@ class Reporte {
       thumbnailUrl: map['thumbnailUrl'],
       apoyos: map['apoyos'] ?? 0,
       apoyosUsuarios: List<String>.from(map['apoyosUsuarios'] ?? []),
+      origenResolucion: map['origenResolucion'] != null
+          ? OrigenResolucion.values.firstWhere(
+              (o) => o.name == map['origenResolucion'],
+              orElse: () => OrigenResolucion.comunidad,
+            )
+          : null,
+      cierreSugeridoUsuarios:
+          List<String>.from(map['cierreSugeridoUsuarios'] ?? []),
+      cierreSugeridoFecha: map['cierreSugeridoFecha'] != null
+          ? (map['cierreSugeridoFecha'] as dynamic).toDate()
+          : null,
+      ultimaActividad: map['ultimaActividad'] != null
+          ? (map['ultimaActividad'] as dynamic).toDate()
+          : (map['fecha'] as dynamic).toDate(),
     );
   }
 }

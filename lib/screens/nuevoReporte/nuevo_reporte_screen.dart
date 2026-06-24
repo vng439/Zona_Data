@@ -672,6 +672,7 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
         autorNombre: usuario.displayName ?? 'Usuario',
         latitud: _latitud,
         longitud: _longitud,
+        ultimaActividad: DateTime.now(),
       );
 
       await ReporteService().crearReporte(

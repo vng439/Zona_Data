@@ -150,27 +150,29 @@ class ReporteCard extends StatelessWidget {
   }
 
   Widget _buildRespuestaAdmin() {
-    if (reporte.estado == EstadoReporte.resuelto &&
-        reporte.respuestaAdmin != null) {
-      return _InfoBox(
-        label: 'Respuesta del administrador',
-        texto: reporte.respuestaAdmin!,
-        colorBorde: const Color(0xFF1D9E75),
-        colorLabel: const Color(0xFF0F6E56),
-      );
-    }
-
-    if (reporte.estado == EstadoReporte.pendienteDeCierre) {
-      return _InfoBox(
-        label: 'Un vecino indicó que esto fue resuelto',
-        texto: 'Esperando confirmación del administrador.',
-        colorBorde: const Color(0xFFBA7517),
-        colorLabel: const Color(0xFF854F0B),
-      );
-    }
-
-    return const SizedBox.shrink();
+  if (reporte.estado == EstadoReporte.resuelto &&
+      reporte.respuestaAdmin != null) {
+    return _InfoBox(
+      label: 'Respuesta del administrador',
+      texto: reporte.respuestaAdmin!,
+      colorBorde: const Color(0xFF1D9E75),
+      colorLabel: const Color(0xFF0F6E56),
+    );
   }
+
+  if (reporte.estado == EstadoReporte.activo &&
+      reporte.cierreSugeridoUsuarios.isNotEmpty) {
+    return _InfoBox(
+      label: 'Vecinos sugieren que esto fue resuelto',
+      texto:
+          'Esperando confirmación del autor del reporte.',
+      colorBorde: const Color(0xFFBA7517),
+      colorLabel: const Color(0xFF854F0B),
+    );
+  }
+
+  return const SizedBox.shrink();
+}
 
   Widget _buildFooter() {
     return Row(
