@@ -47,6 +47,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 32),
                 _buildBotonLogin(context),
                 const SizedBox(height: 16),
+                _buildLinkRecuperarPassword(context),
+                const SizedBox(height: 16),
                 _buildLinkRegistro(context),
               ],
             ),
@@ -174,6 +176,20 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Widget _buildLinkRecuperarPassword(BuildContext context) {
+  final cs = Theme.of(context).colorScheme;
+
+  return Center(
+    child: TextButton(
+      onPressed: _mostrarDialogoRecuperarPassword,
+      child: Text(
+        '¿Olvidaste tu contraseña?',
+        style: TextStyle(color: cs.primary, fontSize: 13),
+      ),
+    ),
+  );
+}
+
   Widget _buildLinkRegistro(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
@@ -247,6 +263,89 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } finally {
       if (mounted) setState(() => _cargando = false);
+    }
+  }
+
+    void _mostrarDialogoRecuperarPassword() {
+    final emailController = TextEditingController(text: _emailController.text);
+    final cs = Theme.of(context).colorScheme;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Recuperar contraseña'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Ingresá tu email y te enviaremos un link para restablecer tu contraseña.',
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              final email = emailController.text.trim();
+              if (email.isEmpty || !email.contains('@')) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Ingresá un email válido')),
+                );
+                return;
+              }
+
+              final estadoPantalla = this;
+
+              try {
+                await FirebaseAuth.instance.sendPasswordResetEmail(
+                  email: email,
+                );
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
+
+                if (!estadoPantalla.mounted) return;
+                ScaffoldMessenger.of(estadoPantalla.context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                        'Te enviamos un email para restablecer tu contraseña'),
+                    duration: Duration(seconds: 3),
+                  ),
+                );
+              } on FirebaseAuthException catch (e) {
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
+
+                if (!estadoPantalla.mounted) return;
+                ScaffoldMessenger.of(estadoPantalla.context).showSnackBar(
+                  SnackBar(content: Text(_mensajeErrorRecuperacion(e.code))),
+                );
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: cs.primary),
+            child: const Text('Enviar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _mensajeErrorRecuperacion(String codigo) {
+    switch (codigo) {
+      case 'user-not-found':
+        return 'No existe una cuenta con ese email';
+      case 'invalid-email':
+        return 'El email no es válido';
+      default:
+        return 'Ocurrió un error. Intentá de nuevo';
     }
   }
 

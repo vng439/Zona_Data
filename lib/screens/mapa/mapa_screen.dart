@@ -22,7 +22,18 @@ class _MapaScreenState extends State<MapaScreen> {
   static const LatLng _centroInicial = LatLng(-46.4333, -67.5167);
   LatLng? _ubicacionManualSeleccionada;
 
-  
+@override
+  void initState() {
+    super.initState();
+    _verificarEstadosAlAbrir();
+  }
+
+  Future<void> _verificarEstadosAlAbrir() async {
+    final reportes = await ReporteService().obtenerReportes().first;
+    if (reportes.isNotEmpty) {
+      await ReporteService().verificarYActualizarEstados(reportes);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

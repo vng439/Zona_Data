@@ -10,6 +10,7 @@ import '../../utils/reporte_helpers.dart';
 import '../../utils/validadores.dart';
 import '../mapa/selector_ubicacion_screen.dart';
 import '../detalle/detalle_screen.dart' as detalle;
+import 'package:flutter/gestures.dart';
 
 class NuevoReporteScreen extends StatefulWidget {
   final LatLng? ubicacionInicial;
@@ -72,8 +73,11 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
     final descripcion = _descripcionController.text.trim();
     if (descripcion.length < 20 || !tieneSentido(descripcion)) return false;
 
+    // Si la ubicación se eligió manualmente en el mapa, la foto es obligatoria
+    if (_ubicacionEsDelMapa && _imagenSeleccionada == null) return false;
+
     return true;
-  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -115,9 +119,16 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
                 _buildLoaderDuplicados(context),
               ],
               const SizedBox(height: 24),
-              _buildLabel(context, 'Foto'),
+              _buildLabel(
+                context,
+                _ubicacionEsDelMapa ? 'Foto (obligatoria)' : 'Foto',
+              ),
               const SizedBox(height: 8),
               _buildSelectorImagen(context),
+              if (_ubicacionEsDelMapa) ...[
+                const SizedBox(height: 8),
+                _buildAdvertenciaFoto(context),
+              ],
               const SizedBox(height: 32),
               _buildBotonEnviar(context),
             ],
@@ -461,7 +472,9 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
                       color: cs.onSurfaceVariant, size: 28),
                   const SizedBox(height: 8),
                   Text(
-                    'Adjuntar foto (opcional)',
+                    _ubicacionEsDelMapa
+                        ? 'Adjuntar foto (obligatoria)'
+                        : 'Adjuntar foto (opcional)',
                     style: TextStyle(
                       color: cs.onSurfaceVariant,
                       fontSize: 13,
@@ -507,6 +520,60 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
       ),
     );
   }
+
+  Widget _buildAdvertenciaFoto(BuildContext context) {
+  final cs = Theme.of(context).colorScheme;
+
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(Icons.warning_amber_rounded, size: 16, color: cs.error),
+      const SizedBox(width: 6),
+      Expanded(
+        child: RichText(
+          text: TextSpan(
+            style: TextStyle(fontSize: 12, color: cs.error),
+            children: [
+              const TextSpan(
+                text: 'Evitá sanciones: subí solo información real. ',
+              ),
+              TextSpan(
+                text: 'Más información',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.underline,
+                ),
+                recognizer: TapGestureRecognizer()
+                  ..onTap = () => _mostrarDialogoAdvertenciaFoto(context),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+void _mostrarDialogoAdvertenciaFoto(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('¿Por qué la foto es obligatoria?'),
+      content: const Text(
+        'Al no estar en la ubicación original y utilizar la opción de '
+        'ubicación manual, con el objetivo de mantener información real '
+        'en el sistema es que solicitamos que revises bien lo que subís. '
+        'Evitá baneos o sanciones. Muchas gracias.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Entendido'),
+        ),
+      ],
+    ),
+  );
+}
 
   Future<void> _seleccionarImagen(ImageSource fuente) async {
     final XFile? archivo = await _picker.pickImage(

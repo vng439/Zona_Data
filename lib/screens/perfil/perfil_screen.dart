@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../auth/login_screen.dart';
+import 'mis_reportes_screen.dart';
 
 class PerfilScreen extends StatelessWidget {
   final VoidCallback? onLoginExitoso;
@@ -136,6 +137,21 @@ class PerfilScreen extends StatelessWidget {
           const SizedBox(height: 40),
           Divider(color: cs.outlineVariant),
           const SizedBox(height: 16),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.list_alt_outlined, color: cs.primary),
+            title: const Text('Mis reportes'),
+            trailing: Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MisReportesScreen(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.logout, color: cs.error),

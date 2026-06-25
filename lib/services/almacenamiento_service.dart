@@ -3,6 +3,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 
+
 typedef ImagenUrls = ({String imagenUrl, String thumbnailUrl});
 
 class StorageService {
@@ -60,6 +61,17 @@ class StorageService {
     final thumbnailUrl = await refThumb.getDownloadURL();
 
     return (imagenUrl: imagenUrl, thumbnailUrl: thumbnailUrl);
+  }
+
+  /// Elimina una imagen de Storage a partir de su URL de descarga.
+  /// Si la URL es inválida o el archivo ya no existe, no lanza error.
+  Future<void> eliminarImagen(String url) async {
+    try {
+      final ref = _storage.refFromURL(url);
+      await ref.delete();
+    } catch (e) {
+      // Si ya no existe o la URL es inválida, simplemente lo ignoramos
+    }
   }
 }
 

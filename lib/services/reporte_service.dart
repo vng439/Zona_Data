@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/reports.dart';
 import 'almacenamiento_service.dart';
 
+
 class ReporteService {
   final CollectionReference _coleccion =
       FirebaseFirestore.instance.collection('reportes');
@@ -193,6 +194,87 @@ class ReporteService {
     }
   }
 
+    static const Duration _plazoEliminacion = Duration(hours: 48);
+
+  /// Stream de reportes creados por un usuario específico.
+  Stream<List<Reporte>> obtenerReportesDeUsuario(String autorId) {
+    return _coleccion
+        .where('autorId', isEqualTo: autorId)
+        .orderBy('fecha', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return Reporte.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+      }).toList();
+    });
+  }
+
+  /// Solo puede eliminarse si no tiene apoyos de otros usuarios
+  /// y todavía no pasaron 48hs desde su creación.
+  bool puedeEliminarse(Reporte reporte) {
+    if (reporte.apoyos > 0) return false;
+    return DateTime.now().difference(reporte.fecha) < _plazoEliminacion;
+  }
+
+  /// Puede editarse en cualquier momento mientras no tenga apoyos.
+  bool puedeEditarse(Reporte reporte) {
+    return reporte.apoyos == 0;
+  }
+
+  /// Elimina el reporte de Firestore y, si tiene imágenes, también de Storage.
+  Future<void> eliminarReporte(Reporte reporte) async {
+    if (reporte.imagenUrl != null) {
+      await _storageService.eliminarImagen(reporte.imagenUrl!);
+    }
+    if (reporte.thumbnailUrl != null) {
+      await _storageService.eliminarImagen(reporte.thumbnailUrl!);
+    }
+    await _coleccion.doc(reporte.id).delete();
+  }
+
+  /// Actualiza título, descripción y, opcionalmente, reemplaza la imagen.
+  /// Si [nuevaImagen] es null, la imagen actual se conserva sin cambios.
+  /// Si [eliminarImagenActual] es true, se borra la imagen sin reemplazo.
+  Future<void> actualizarReporte({
+    required Reporte reporte,
+    required String nuevoTitulo,
+    required String nuevaDescripcion,
+    File? nuevaImagen,
+    bool eliminarImagenActual = false,
+  }) async {
+    final actualizacion = <String, dynamic>{
+      'titulo': nuevoTitulo,
+      'descripcion': nuevaDescripcion,
+    };
+
+    if (nuevaImagen != null) {
+      // Borrar la imagen vieja si existía
+      if (reporte.imagenUrl != null) {
+        await _storageService.eliminarImagen(reporte.imagenUrl!);
+      }
+      if (reporte.thumbnailUrl != null) {
+        await _storageService.eliminarImagen(reporte.thumbnailUrl!);
+      }
+      final urls = await _storageService.subirImagenReporte(
+        imagen: nuevaImagen,
+        autorId: reporte.autorId,
+      );
+      actualizacion['imagenUrl'] = urls.imagenUrl;
+      actualizacion['thumbnailUrl'] = urls.thumbnailUrl;
+    } else if (eliminarImagenActual) {
+      if (reporte.imagenUrl != null) {
+        await _storageService.eliminarImagen(reporte.imagenUrl!);
+      }
+      if (reporte.thumbnailUrl != null) {
+        await _storageService.eliminarImagen(reporte.thumbnailUrl!);
+      }
+      actualizacion['imagenUrl'] = null;
+      actualizacion['thumbnailUrl'] = null;
+    }
+
+    await _coleccion.doc(reporte.id).update(actualizacion);
+}
+
   double _haversineMetros(
     double lat1,
     double lon1,
@@ -213,3 +295,4 @@ class ReporteService {
 
   double _gradArad(double grados) => grados * pi / 180.0;
 }
+

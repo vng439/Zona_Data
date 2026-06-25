@@ -402,6 +402,7 @@ class _FiltrosSheetState extends State<_FiltrosSheet> {
     _categoria = widget.categoriaFiltro;
     _estado = widget.estadoFiltro;
     _fecha = widget.fechaFiltro;
+    _verificarEstadosAlAbrir();
   }
 
   void _aplicar() {
@@ -419,6 +420,13 @@ class _FiltrosSheetState extends State<_FiltrosSheet> {
     });
     widget.onLimpiar();
   }
+
+  Future<void> _verificarEstadosAlAbrir() async {
+  final reportes = await ReporteService().obtenerReportes().first;
+  if (reportes.isNotEmpty) {
+    await ReporteService().verificarYActualizarEstados(reportes);
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -559,6 +567,8 @@ class _FiltrosSheetState extends State<_FiltrosSheet> {
       ),
     );
   }
+
+  
 
   Widget _buildSeccionLabel(ColorScheme cs, String texto) {
     return Text(
