@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../models/reports.dart';
 import '../../services/reporte_service.dart';
 import '../../utils/validadores.dart';
+import '../../utils/moderacion_texto.dart';
 
 class EditarReporteScreen extends StatefulWidget {
   final Reporte reporte;
@@ -126,6 +127,9 @@ class _EditarReporteScreenState extends State<EditarReporteScreen> {
         if (!tieneSentido(valor)) {
           return 'Escribí un título que describa el problema';
         }
+        if (contieneLenguajeInapropiado(valor)) {
+          return 'El título contiene lenguaje inapropiado';
+        }
         return null;
       },
     );
@@ -163,6 +167,9 @@ class _EditarReporteScreenState extends State<EditarReporteScreen> {
         }
         if (!tieneSentido(valor)) {
           return 'Describí el problema con palabras reales';
+        }
+        if (contieneLenguajeInapropiado(valor)) {
+          return 'La descripción contiene lenguaje inapropiado';
         }
         return null;
       },

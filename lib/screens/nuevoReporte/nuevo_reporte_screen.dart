@@ -11,6 +11,8 @@ import '../../utils/validadores.dart';
 import '../mapa/selector_ubicacion_screen.dart';
 import '../detalle/detalle_screen.dart' as detalle;
 import 'package:flutter/gestures.dart';
+import '../../utils/moderacion_texto.dart';
+import '../../services/gemini_service.dart';
 
 class NuevoReporteScreen extends StatefulWidget {
   final LatLng? ubicacionInicial;
@@ -35,6 +37,7 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
   File? _imagenSeleccionada;
   bool _ubicacionEsDelMapa = false;
   bool _verificandoDuplicados = false;
+  bool _analizandoImagen = false;
 
   CategoriaReporte? _ultimaCategoriaVerificada;
   double? _ultimaLatVerificada;
@@ -69,10 +72,12 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
 
     final titulo = _tituloController.text.trim();
     if (titulo.length < 10 || !tieneSentido(titulo)) return false;
+    if (contieneLenguajeInapropiado(titulo)) return false;
 
     final descripcion = _descripcionController.text.trim();
     if (descripcion.length < 20 || !tieneSentido(descripcion)) return false;
-
+    if (contieneLenguajeInapropiado(descripcion)) return false;
+    
     // Si la ubicación se eligió manualmente en el mapa, la foto es obligatoria
     if (_ubicacionEsDelMapa && _imagenSeleccionada == null) return false;
 
@@ -253,6 +258,9 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
         if (!tieneSentido(valor)) {
           return 'Escribí un título que describa el problema';
         }
+        if (contieneLenguajeInapropiado(valor)) {
+          return 'El título contiene lenguaje inapropiado';
+        }
         return null;
       },
     );
@@ -295,6 +303,9 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
         }
         if (!tieneSentido(valor)) {
           return 'Describí el problema con palabras reales';
+        }
+        if (contieneLenguajeInapropiado(valor)) {
+          return 'La descripción contiene lenguaje inapropiado';
         }
         return null;
       },
@@ -421,8 +432,8 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return GestureDetector(
-      onTap: _mostrarOpcionesImagen,
-      child: AnimatedContainer(
+      onTap: _analizandoImagen ? null : _mostrarOpcionesImagen,
+        child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         height: _imagenSeleccionada != null ? 200 : 100,
         width: double.infinity,
@@ -435,7 +446,23 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
           borderRadius: BorderRadius.circular(10),
           color: cs.surfaceContainerLowest,
         ),
-        child: _imagenSeleccionada != null
+        child: _analizandoImagen
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: cs.primary),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Validando imagen...',
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+                ),
+              ],
+            )
+          : _imagenSeleccionada != null
             ? Stack(
                 fit: StackFit.expand,
                 children: [
@@ -554,41 +581,6 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
   );
 }
 
-void _mostrarDialogoAdvertenciaFoto(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('¿Por qué la foto es obligatoria?'),
-      content: const Text(
-        'Al no estar en la ubicación original y utilizar la opción de '
-        'ubicación manual, con el objetivo de mantener información real '
-        'en el sistema es que solicitamos que revises bien lo que subís. '
-        'Evitá baneos o sanciones. Muchas gracias.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Entendido'),
-        ),
-      ],
-    ),
-  );
-}
-
-  Future<void> _seleccionarImagen(ImageSource fuente) async {
-    final XFile? archivo = await _picker.pickImage(
-      source: fuente,
-      imageQuality: 90,
-      maxWidth: 1920,
-    );
-
-    if (archivo == null) return;
-
-    setState(() {
-      _imagenSeleccionada = File(archivo.path);
-    });
-  }
-
   void _mostrarOpcionesImagen() {
     final cs = Theme.of(context).colorScheme;
 
@@ -648,6 +640,122 @@ void _mostrarDialogoAdvertenciaFoto(BuildContext context) {
 
     setState(() => _obteniendoUbicacion = false);
   }
+
+void _mostrarDialogoAdvertenciaFoto(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('¿Por qué la foto es obligatoria?'),
+      content: const Text(
+        'Al no estar en la ubicación original y utilizar la opción de '
+        'ubicación manual, con el objetivo de mantener información real '
+        'en el sistema es que solicitamos que revises bien lo que subís. '
+        'Evitá baneos o sanciones. Muchas gracias.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Entendido'),
+        ),
+      ],
+    ),
+  );
+}
+
+  Future<void> _seleccionarImagen(ImageSource fuente) async {
+    if (_analizandoImagen) return; 
+
+    final XFile? archivo = await _picker.pickImage(
+      source: fuente,
+      imageQuality: 90,
+      maxWidth: 1920,
+    );
+
+    if (archivo == null) return;
+
+    final imagenCandidata = File(archivo.path);
+
+    setState(() => _analizandoImagen = true);
+
+    final resultado = await GeminiService().analizarImagen(imagenCandidata);
+
+    if (!mounted) return;
+    
+    setState(() => _analizandoImagen = false);
+
+    switch (resultado) {
+      case ResultadoModeracionImagen.apropiada:
+        setState(() {
+          _imagenSeleccionada = imagenCandidata;
+        });
+        break; 
+
+      case ResultadoModeracionImagen.inapropiada:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Esta imagen no cumple con las normas de la aplicación.'),
+            backgroundColor: Colors.redAccent,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        break;
+
+      case ResultadoModeracionImagen.noSePudoValidar:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No pudimos validar la imagen en este momento. Intentá nuevamente en unos minutos.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        break;
+    }
+  }
+
+  /* Future<void> _seleccionarImagen(ImageSource fuente) async {
+    final XFile? archivo = await _picker.pickImage(
+      source: fuente,
+      imageQuality: 90,
+      maxWidth: 1920,
+    );
+
+    if (archivo == null) return;
+
+    final imagenCandidata = File(archivo.path);
+
+    setState(() => _analizandoImagen = true);
+
+    final resultado =
+        await GeminiService().analizarImagen(imagenCandidata);
+
+    if (!mounted) return;
+    setState(() => _analizandoImagen = false);
+
+    switch (resultado) {
+      case ResultadoModeracionImagen.apropiada:
+        setState(() {
+          _imagenSeleccionada = imagenCandidata;
+        });
+
+      case ResultadoModeracionImagen.inapropiada:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Esta imagen no cumple con las normas de la aplicación.'),
+            backgroundColor: Colors.redAccent,
+            duration: Duration(seconds: 3),
+          ),
+        );
+
+      case ResultadoModeracionImagen.noSePudoValidar:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'No pudimos validar la imagen en este momento. Intentá nuevamente en unos minutos.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+    }
+  } */
 
   Future<void> _abrirSelectorMapa() async {
     final LatLng? resultado = await Navigator.push<LatLng>(
